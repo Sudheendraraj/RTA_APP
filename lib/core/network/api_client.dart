@@ -78,6 +78,48 @@ class ApiClient {
   }) async {
     try {
       switch (path) {
+        case '/dashboard/config':
+          return Response<T>(
+            requestOptions: RequestOptions(path: path),
+            data: _dashboardConfigResponse() as T,
+            statusCode: 200,
+          );
+        case '/dashboard/filters':
+          return Response<T>(
+            requestOptions: RequestOptions(path: path),
+            data: _filterOptionsResponse() as T,
+            statusCode: 200,
+          );
+        case '/dashboard/filters/districts':
+          return Response<T>(
+            requestOptions: RequestOptions(path: path),
+            data: _districtsResponse() as T,
+            statusCode: 200,
+          );
+        case '/dashboard/filters/zones':
+          return Response<T>(
+            requestOptions: RequestOptions(path: path),
+            data: _zonesResponse() as T,
+            statusCode: 200,
+          );
+        case '/dashboard/filters/cameras':
+          return Response<T>(
+            requestOptions: RequestOptions(path: path),
+            data: _camerasFilterResponse() as T,
+            statusCode: 200,
+          );
+        case '/dashboard/metrics':
+          return Response<T>(
+            requestOptions: RequestOptions(path: path),
+            data: _metricsResponse() as T,
+            statusCode: 200,
+          );
+        case '/dashboard/charts':
+          return Response<T>(
+            requestOptions: RequestOptions(path: path),
+            data: _chartsResponse() as T,
+            statusCode: 200,
+          );
         case '/dashboard':
           return Response<T>(
             requestOptions: RequestOptions(path: path),
@@ -205,8 +247,10 @@ class ApiClient {
             .toIso8601String(),
         'confidence': 0.78 + (index * 0.02),
         'direction': index % 2 == 0 ? 'Northbound' : 'Southbound',
-        'vehicleImage': 'assets/images/revanth.png',
-        'plateImage': 'assets/images/ponnam.png',
+        'vehicleImage':
+            'https://via.placeholder.com/256x160?text=Vehicle+${index + 1}',
+        'plateImage':
+            'https://via.placeholder.com/256x64?text=Plate+${index + 1}',
       };
     });
   }
@@ -243,8 +287,10 @@ class ApiClient {
             .toIso8601String(),
         'confidence': 0.74 + (index * 0.02),
         'direction': index.isOdd ? 'Eastbound' : 'Westbound',
-        'vehicleImage': 'assets/images/revanth.png',
-        'plateImage': 'assets/images/ponnam.png',
+        'vehicleImage':
+            'https://via.placeholder.com/260x150?text=Plate+${index + 1}',
+        'plateImage':
+            'https://via.placeholder.com/260x80?text=ANPR+${index + 1}',
       };
     });
   }
@@ -311,6 +357,267 @@ class ApiClient {
         'vehicles': 120 + (index * 10) % 160,
       };
     });
+  }
+
+  // Dynamic Dashboard Configuration Methods
+  Map<String, dynamic> _dashboardConfigResponse() {
+    return {
+      'title': 'RTA Dashboard',
+      'filters': [
+        {
+          'id': 'district',
+          'label': 'District',
+          'hint': 'Select All District',
+          'isMultiSelect': false,
+          'isRequired': false,
+          'order': 1,
+        },
+        {
+          'id': 'zone',
+          'label': 'Zone',
+          'hint': 'Select All Zone',
+          'isMultiSelect': false,
+          'isRequired': false,
+          'order': 2,
+        },
+        {
+          'id': 'camera',
+          'label': 'Camera',
+          'hint': 'Select All Camera',
+          'isMultiSelect': true,
+          'isRequired': false,
+          'order': 3,
+        },
+        {
+          'id': 'timeRange',
+          'label': 'Time Range',
+          'hint': 'Select All Time Range',
+          'isMultiSelect': false,
+          'isRequired': false,
+          'order': 4,
+        },
+      ],
+      'metrics': [
+        {
+          'id': 'totalVehicles',
+          'title': 'Total No.of Vehicles',
+          'apiEndpoint': '/dashboard/metrics/totalVehicles',
+          'icon': 'directions_car',
+          'backgroundColor': 'FF1E88E5',
+          'order': 1,
+          'isVisible': true,
+        },
+        {
+          'id': 'eChallan',
+          'title': 'e-Challan',
+          'apiEndpoint': '/dashboard/metrics/eChallan',
+          'icon': 'receipt_long',
+          'backgroundColor': 'FF7B1FA2',
+          'order': 2,
+          'isVisible': true,
+        },
+        {
+          'id': 'manualChallan',
+          'title': 'Manual Challan',
+          'apiEndpoint': '/dashboard/metrics/manualChallan',
+          'icon': 'money_off',
+          'backgroundColor': 'FF1565C0',
+          'order': 3,
+          'isVisible': true,
+        },
+        {
+          'id': 'vehiclesSeized',
+          'title': 'Vehicles Seized',
+          'apiEndpoint': '/dashboard/metrics/vehiclesSeized',
+          'icon': 'block',
+          'backgroundColor': 'FFFF6F00',
+          'order': 4,
+          'isVisible': true,
+        },
+      ],
+      'charts': [
+        {
+          'id': 'registration',
+          'title': 'Registration',
+          'type': 'doughnut',
+          'apiEndpoint': '/dashboard/charts/registration',
+          'dataFields': ['label', 'value', 'color'],
+          'isVisible': true,
+          'order': 1,
+        },
+        {
+          'id': 'vehicleDistribution',
+          'title': 'Vehicle Distribution',
+          'type': 'doughnut',
+          'apiEndpoint': '/dashboard/charts/vehicleDistribution',
+          'dataFields': ['label', 'value', 'color'],
+          'isVisible': true,
+          'order': 2,
+        },
+        {
+          'id': 'totalRevenue',
+          'title': 'Total Revenue Generated',
+          'type': 'column',
+          'apiEndpoint': '/dashboard/charts/totalRevenue',
+          'dataFields': ['label', 'value', 'color'],
+          'isVisible': true,
+          'order': 3,
+        },
+      ],
+      'layout': {
+        'filterColumnsDesktop': 4,
+        'filterColumnsMobile': 1,
+        'metricColumnsDesktop': 4,
+        'metricColumnsMobile': 1,
+        'chartColumnsDesktop': 2,
+        'chartColumnsMobile': 1,
+      },
+      'refresh': {
+        'intervalSeconds': 30,
+        'enableAutoRefresh': true,
+        'enableRealTimeUpdates': true,
+      },
+    };
+  }
+
+  Map<String, dynamic> _filterOptionsResponse() {
+    return {
+      'districts': [
+        {'id': '1', 'label': 'Select All District'},
+        {'id': '2', 'label': 'Nizamabad'},
+        {'id': '3', 'label': 'Adilabad'},
+        {'id': '4', 'label': 'Sangareddy'},
+        {'id': '5', 'label': 'Kamareddy'},
+        {'id': '6', 'label': 'Nirmal'},
+        {'id': '7', 'label': 'Komaram Bheem Asifabad'},
+        {'id': '8', 'label': 'Jogulamba Gadwal'},
+        {'id': '9', 'label': 'Narayanpet'},
+        {'id': '10', 'label': 'Nalgonda'},
+      ],
+      'zones': [
+        {'id': '1', 'label': 'Select All Zone'},
+        {'id': '2', 'label': 'North Zone'},
+        {'id': '3', 'label': 'South Zone'},
+        {'id': '4', 'label': 'East Zone'},
+        {'id': '5', 'label': 'West Zone'},
+      ],
+      'cameras': [
+        {'id': '1', 'label': 'Select All Camera'},
+        {'id': '2', 'label': 'North Checkpost 1'},
+        {'id': '3', 'label': 'North Checkpost 2'},
+        {'id': '4', 'label': 'South Checkpost 1'},
+        {'id': '5', 'label': 'South Checkpost 2'},
+      ],
+      'timeRanges': [
+        {'id': '1', 'label': 'Select All Time Range'},
+        {'id': '2', 'label': 'Today'},
+        {'id': '3', 'label': 'This Week'},
+        {'id': '4', 'label': 'This Month'},
+        {'id': '5', 'label': 'This Year'},
+      ],
+    };
+  }
+
+  Map<String, dynamic> _districtsResponse() {
+    return {
+      'districts': [
+        {'id': '1', 'label': 'Select All District'},
+        {'id': '2', 'label': 'Nizamabad'},
+        {'id': '3', 'label': 'Adilabad'},
+        {'id': '4', 'label': 'Sangareddy'},
+        {'id': '5', 'label': 'Kamareddy'},
+        {'id': '6', 'label': 'Nirmal'},
+      ],
+    };
+  }
+
+  Map<String, dynamic> _zonesResponse() {
+    return {
+      'zones': [
+        {'id': '1', 'label': 'Select All Zone'},
+        {'id': '2', 'label': 'North Zone'},
+        {'id': '3', 'label': 'South Zone'},
+        {'id': '4', 'label': 'East Zone'},
+        {'id': '5', 'label': 'West Zone'},
+      ],
+    };
+  }
+
+  Map<String, dynamic> _camerasFilterResponse() {
+    return {
+      'cameras': [
+        {'id': '1', 'label': 'Select All Camera'},
+        {'id': '2', 'label': 'North Checkpost 1'},
+        {'id': '3', 'label': 'North Checkpost 2'},
+        {'id': '4', 'label': 'South Checkpost 1'},
+      ],
+    };
+  }
+
+  List<Map<String, dynamic>> _metricsResponse() {
+    return [
+      {
+        'id': 'totalVehicles',
+        'value': 3537,
+        'previousValue': 3412,
+        'changePercentage': 3.66,
+      },
+      {
+        'id': 'eChallan',
+        'value': 152,
+        'previousValue': 145,
+        'changePercentage': 4.83,
+      },
+      {
+        'id': 'manualChallan',
+        'value': 78,
+        'previousValue': 72,
+        'changePercentage': 8.33,
+      },
+      {
+        'id': 'vehiclesSeized',
+        'value': 12,
+        'previousValue': 10,
+        'changePercentage': 20.0,
+      },
+    ];
+  }
+
+  List<Map<String, dynamic>> _chartsResponse() {
+    return [
+      {
+        'title': 'Registration',
+        'data': [
+          {'label': 'Compliant', 'value': 15016, 'color': 'FF009688'},
+          {'label': 'Non-Compliant', 'value': 192, 'color': 'FFEC407A'},
+          {'label': 'Missing Data', 'value': 0, 'color': 'FFFFEB3B'},
+        ],
+      },
+      {
+        'title': 'Vehicle Distribution',
+        'data': [
+          {'label': 'Fitness', 'value': 215, 'color': 'FF66BB6A'},
+          {'label': 'Insurance', 'value': 4061, 'color': 'FF424242'},
+          {'label': 'Road Tax', 'value': 852, 'color': 'FF4CAF50'},
+          {'label': 'Permit', 'value': 52, 'color': 'FF2196F3'},
+          {'label': 'PUC', 'value': 1851, 'color': 'FF9C27B0'},
+          {'label': 'All Clear', 'value': 3740, 'color': 'FFA5D6A7'},
+          {'label': 'Registration', 'value': 192, 'color': 'FFFDD835'},
+          {'label': 'Missing Data', 'value': 10910, 'color': 'FFFFB74D'},
+        ],
+      },
+      {
+        'title': 'Total Revenue Generated',
+        'data': [
+          {'label': 'Jan', 'value': 0, 'color': 'FF00000000'},
+          {'label': 'Feb', 'value': 0, 'color': 'FF00000000'},
+          {'label': 'Mar', 'value': 0, 'color': 'FF00000000'},
+          {'label': 'Apr', 'value': 20888, 'color': 'FFFF6F00'},
+          {'label': 'May', 'value': 4597, 'color': 'FF2196F3'},
+          {'label': 'Jun', 'value': 0, 'color': 'FF00000000'},
+        ],
+      },
+    ];
   }
 }
 
