@@ -39,10 +39,11 @@ class ApiClient {
           handler.next(options);
         },
         onResponse: (response, handler) {
-          if (kDebugMode)
+          if (kDebugMode) {
             debugPrint(
               '← ${response.statusCode} ${response.requestOptions.path}',
             );
+          }
           handler.next(response);
         },
         onError: (err, handler) async {

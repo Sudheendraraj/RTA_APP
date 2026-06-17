@@ -412,7 +412,9 @@ class _DynamicDashboardScreenState
     double screenWidth,
     bool isMobile,
   ) {
-    final chartHeight = isMobile ? math.max(300, screenWidth * 0.64) : 360;
+    final chartHeight = isMobile
+        ? math.max(300, screenWidth * 0.64).toDouble()
+        : 360.0;
     final cardPadding = isMobile ? 14.0 : 20.0;
     final titleStyle = TextStyle(
       fontSize: isMobile ? 16 : 18,
@@ -454,13 +456,12 @@ class _DynamicDashboardScreenState
             isVisible: true,
             overflowMode: LegendItemOverflowMode.wrap,
             position: LegendPosition.bottom,
-            iconHeight: isMobile ? 12 : 16,
-            iconWidth: isMobile ? 12 : 16,
-            itemPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            iconHeight: isMobile ? 12.0 : 16.0,
+            iconWidth: isMobile ? 12.0 : 16.0,
+            itemPadding: 8.0,
             textStyle: TextStyle(fontSize: isMobile ? 11 : 12),
           ),
           margin: EdgeInsets.zero,
-          plotAreaBorderWidth: 0,
           series: <DoughnutSeries<DynamicChartData, String>>[
             DoughnutSeries<DynamicChartData, String>(
               animationDuration: 0,
@@ -476,7 +477,6 @@ class _DynamicDashboardScreenState
       case 'column':
         return SfCartesianChart(
           margin: const EdgeInsets.all(8),
-          plotAreaBorderWidth: 0,
           enableAxisAnimation: false,
           primaryXAxis: CategoryAxis(
             labelRotation: 45,
@@ -504,7 +504,6 @@ class _DynamicDashboardScreenState
       case 'line':
         return SfCartesianChart(
           margin: const EdgeInsets.all(8),
-          plotAreaBorderWidth: 0,
           primaryXAxis: CategoryAxis(
             labelRotation: 45,
             majorGridLines: const MajorGridLines(width: 0),
