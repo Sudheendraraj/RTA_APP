@@ -412,9 +412,13 @@ class _DynamicDashboardScreenState
     double screenWidth,
     bool isMobile,
   ) {
+<<<<<<< HEAD
     final chartHeight = isMobile
         ? math.max(300, screenWidth * 0.64).toDouble()
         : 360.0;
+=======
+    final chartHeight = isMobile ? math.max(300.0, screenWidth * 0.64) : 360.0;
+>>>>>>> 3d06e800406bab33b55a0c80e9cc4808efec4301
     final cardPadding = isMobile ? 14.0 : 20.0;
     final titleStyle = TextStyle(
       fontSize: isMobile ? 16 : 18,
@@ -456,8 +460,13 @@ class _DynamicDashboardScreenState
             isVisible: true,
             overflowMode: LegendItemOverflowMode.wrap,
             position: LegendPosition.bottom,
+<<<<<<< HEAD
             iconHeight: isMobile ? 12.0 : 16.0,
             iconWidth: isMobile ? 12.0 : 16.0,
+=======
+            iconHeight: isMobile ? 12 : 16,
+            iconWidth: isMobile ? 12 : 16,
+>>>>>>> 3d06e800406bab33b55a0c80e9cc4808efec4301
             itemPadding: 8.0,
             textStyle: TextStyle(fontSize: isMobile ? 11 : 12),
           ),
