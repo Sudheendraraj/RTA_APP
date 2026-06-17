@@ -1,32 +1,38 @@
+// lib/core/storage/secure_storage_service.dart
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 class SecureStorageService {
+  SecureStorageService._internal();
   static final SecureStorageService _instance =
       SecureStorageService._internal();
+  factory SecureStorageService() => _instance;
 
-  factory SecureStorageService() {
-    return _instance;
-  }
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  SecureStorageService._internal();
+  static const _kToken = 'rta_access_token';
+  static const _kRefresh = 'rta_refresh_token';
+  static const _kUsername = 'rta_username';
+  static const _kRemember = 'rta_remember';
 
-  final Map<String, String> _storage = {};
+  Future<void> writeToken(String token) =>
+      _storage.write(key: _kToken, value: token);
+  Future<String?> readToken() => _storage.read(key: _kToken);
+  Future<void> deleteToken() => _storage.delete(key: _kToken);
 
-  static const _tokenKey = 'jwt_token';
-  static const _refreshTokenKey = 'refresh_token';
-  static const _rememberMeKey = 'remember_me';
+  Future<void> writeRefreshToken(String token) =>
+      _storage.write(key: _kRefresh, value: token);
+  Future<String?> readRefreshToken() => _storage.read(key: _kRefresh);
+  Future<void> deleteRefreshToken() => _storage.delete(key: _kRefresh);
 
-  Future<void> writeToken(String value) async => _storage[_tokenKey] = value;
-  Future<String?> readToken() async => _storage[_tokenKey];
-  Future<void> deleteToken() async => _storage.remove(_tokenKey);
+  Future<void> writeUsername(String username) =>
+      _storage.write(key: _kUsername, value: username);
+  Future<String?> readUsername() => _storage.read(key: _kUsername);
+  Future<void> deleteUsername() => _storage.delete(key: _kUsername);
 
-  Future<void> writeRefreshToken(String value) async =>
-      _storage[_refreshTokenKey] = value;
-  Future<String?> readRefreshToken() async => _storage[_refreshTokenKey];
-  Future<void> deleteRefreshToken() async => _storage.remove(_refreshTokenKey);
+  Future<void> writeRememberMe(bool remember) =>
+      _storage.write(key: _kRemember, value: remember ? '1' : '0');
+  Future<bool> readRememberMe() async =>
+      (await _storage.read(key: _kRemember)) == '1';
 
-  Future<void> writeRememberMe(bool value) async =>
-      _storage[_rememberMeKey] = value.toString();
-  Future<bool> readRememberMe() async {
-    final value = _storage[_rememberMeKey];
-    return value == 'true';
-  }
+  Future<void> clearAll() => _storage.deleteAll();
 }

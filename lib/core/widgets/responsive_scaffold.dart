@@ -64,6 +64,11 @@ class _PortalDrawer extends StatelessWidget {
               route: AppRoutes.dashboard,
             ),
             _DrawerItem(
+              label: 'Live Feed',
+              icon: Icons.stream,
+              route: AppRoutes.liveFeed,
+            ),
+            _DrawerItem(
               label: 'Vehicle Monitoring',
               icon: Icons.camera_alt,
               route: AppRoutes.vehicleMonitoring,
@@ -77,11 +82,6 @@ class _PortalDrawer extends StatelessWidget {
               label: 'ANPR Records',
               icon: Icons.document_scanner,
               route: AppRoutes.anprRecords,
-            ),
-            _DrawerItem(
-              label: 'Live Feed',
-              icon: Icons.stream,
-              route: AppRoutes.liveFeed,
             ),
             _DrawerItem(
               label: 'Cameras',
@@ -139,12 +139,7 @@ class _DrawerItem extends StatelessWidget {
       title: Text(label),
       onTap: () {
         if (isMobile) {
-          // Only pop if there is something to pop (prevents popping the app's
-          // last page which causes GoRouter to assert when the stack is empty).
-          final navigator = Navigator.of(context);
-          if (navigator.canPop()) {
-            navigator.pop();
-          }
+          Navigator.of(context).pop();
         }
         context.go(route);
       },

@@ -5,14 +5,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_client.dart';
 import '../../core/storage/secure_storage_service.dart';
 import '../auth/auth_models.dart';
-import 'auth_repository.dart';
+// legacy notifier uses an internal compatibility repository; avoid importing the
+// new `auth_repository.dart` interface here to prevent type conflicts.
 
 final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((
   ref,
 ) {
   final storage = SecureStorageService();
   final apiClient = ApiClient(storage);
-  final repository = AuthRepository(apiClient: apiClient, storage: storage);
+  final repository = _LegacyAuthRepository(apiClient, storage);
   return AuthNotifier(repository: repository, storage: storage);
 });
 
@@ -24,13 +25,47 @@ class AuthState {
   final bool isAuthenticated;
 }
 
+class _LegacyAuthRepository {
+  _LegacyAuthRepository(this._apiClient, this._storage);
+
+  final ApiClient _apiClient;
+  final SecureStorageService _storage;
+
+  Future<AuthToken> login(
+    String username,
+    String password,
+    bool rememberMe,
+  ) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      '/auth/login',
+      data: {'username': username, 'password': password},
+    );
+    final data = response.data ?? <String, dynamic>{};
+    final access = data['accessToken']?.toString() ?? '';
+    final refresh = data['refreshToken']?.toString() ?? '';
+    await _storage.writeRememberMe(rememberMe);
+    await _storage.writeToken(access);
+    await _storage.writeRefreshToken(refresh);
+    await _storage.writeUsername(username);
+    return AuthToken(accessToken: access, refreshToken: refresh);
+  }
+
+  Future<void> logout() async {
+    try {
+      await _apiClient.post('/auth/logout');
+    } catch (_) {}
+    await _storage.deleteToken();
+    await _storage.deleteRefreshToken();
+  }
+}
+
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier({required this.repository, required this.storage})
     : super(AuthState()) {
     _initialize();
   }
 
-  final AuthRepository repository;
+  final dynamic repository;
   final SecureStorageService storage;
   final _authChanges = StreamController<void>.broadcast();
 

@@ -17,7 +17,7 @@ class DashboardRepository {
       final response = await _apiClient.get<Map<String, dynamic>>(
         '/dashboard/config',
       );
-      return DashboardConfig.fromJson(response.data ?? {});
+      return DashboardConfig.fromJson(response.data ?? <String, dynamic>{});
     } on DioException catch (e) {
       throw Exception('Failed to fetch dashboard config: ${e.message}');
     }
@@ -29,7 +29,7 @@ class DashboardRepository {
       final response = await _apiClient.get<Map<String, dynamic>>(
         '/dashboard/filters',
       );
-      return FilterOptions.fromJson(response.data ?? {});
+      return FilterOptions.fromJson(response.data ?? <String, dynamic>{});
     } on DioException catch (e) {
       throw Exception('Failed to fetch filter options: ${e.message}');
     }
@@ -41,12 +41,16 @@ class DashboardRepository {
       final response = await _apiClient.get<Map<String, dynamic>>(
         '/dashboard/filters/districts',
       );
-      final data = response.data ?? {};
+      final data = Map<String, dynamic>.from(
+        response.data ?? <String, dynamic>{},
+      );
       final options = FilterOptions.fromJson({
-        'districts': data['districts'] ?? [],
-        'zones': [],
-        'cameras': [],
-        'timeRanges': [],
+        'districts': List<Map<String, dynamic>>.from(
+          (data['districts'] as List<dynamic>?) ?? [],
+        ),
+        'zones': <Map<String, dynamic>>[],
+        'cameras': <Map<String, dynamic>>[],
+        'timeRanges': <Map<String, dynamic>>[],
       });
       return options.districts.map((d) => d.label).toList();
     } on DioException catch (e) {
@@ -57,18 +61,25 @@ class DashboardRepository {
   /// Fetch zone filter options based on district
   Future<List<String>> fetchZones(String? districtId) async {
     try {
-      final params = districtId != null ? {'districtId': districtId} : {};
+      final Map<String, dynamic> params = districtId != null
+          ? {'districtId': districtId}
+          : <String, dynamic>{};
       final response = await _apiClient.get<Map<String, dynamic>>(
         '/dashboard/filters/zones',
         queryParameters: params,
       );
-      final data = response.data ?? {};
-      final options = FilterOptions.fromJson({
-        'zones': data['zones'] ?? [],
-        'districts': [],
-        'cameras': [],
-        'timeRanges': [],
-      });
+      final data = Map<String, dynamic>.from(
+        response.data ?? <String, dynamic>{},
+      );
+      final optionsJson = <String, dynamic>{
+        'zones': List<Map<String, dynamic>>.from(
+          (data['zones'] as List<dynamic>?) ?? [],
+        ),
+        'districts': <Map<String, dynamic>>[],
+        'cameras': <Map<String, dynamic>>[],
+        'timeRanges': <Map<String, dynamic>>[],
+      };
+      final options = FilterOptions.fromJson(optionsJson);
       return options.zones.map((z) => z.label).toList();
     } on DioException catch (e) {
       throw Exception('Failed to fetch zones: ${e.message}');
@@ -78,18 +89,25 @@ class DashboardRepository {
   /// Fetch camera filter options based on zone
   Future<List<String>> fetchCameras(String? zoneId) async {
     try {
-      final params = zoneId != null ? {'zoneId': zoneId} : {};
+      final Map<String, dynamic> params = zoneId != null
+          ? {'zoneId': zoneId}
+          : <String, dynamic>{};
       final response = await _apiClient.get<Map<String, dynamic>>(
         '/dashboard/filters/cameras',
         queryParameters: params,
       );
-      final data = response.data ?? {};
-      final options = FilterOptions.fromJson({
-        'cameras': data['cameras'] ?? [],
-        'districts': [],
-        'zones': [],
-        'timeRanges': [],
-      });
+      final data = Map<String, dynamic>.from(
+        response.data ?? <String, dynamic>{},
+      );
+      final optionsJson = <String, dynamic>{
+        'cameras': List<Map<String, dynamic>>.from(
+          (data['cameras'] as List<dynamic>?) ?? [],
+        ),
+        'districts': <Map<String, dynamic>>[],
+        'zones': <Map<String, dynamic>>[],
+        'timeRanges': <Map<String, dynamic>>[],
+      };
+      final options = FilterOptions.fromJson(optionsJson);
       return options.cameras.map((c) => c.label).toList();
     } on DioException catch (e) {
       throw Exception('Failed to fetch cameras: ${e.message}');
@@ -106,7 +124,7 @@ class DashboardRepository {
         '/dashboard/metrics/$metricId',
         queryParameters: filters,
       );
-      return MetricValue.fromJson(response.data ?? {});
+      return MetricValue.fromJson(response.data ?? <String, dynamic>{});
     } on DioException catch (e) {
       throw Exception('Failed to fetch metric $metricId: ${e.message}');
     }
@@ -122,7 +140,7 @@ class DashboardRepository {
         '/dashboard/charts/$chartId',
         queryParameters: filters,
       );
-      return ChartResponse.fromJson(response.data ?? {});
+      return ChartResponse.fromJson(response.data ?? <String, dynamic>{});
     } on DioException catch (e) {
       throw Exception('Failed to fetch chart $chartId: ${e.message}');
     }

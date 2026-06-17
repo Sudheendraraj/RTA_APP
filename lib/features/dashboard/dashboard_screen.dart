@@ -48,7 +48,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     'Jangaon',
     'Hanamkonda',
     'Yadadri Bhuvanagiri',
-
   ];
 
   static const List<String> _timeRangeOptions = [
@@ -139,6 +138,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final state = ref.watch(dashboardNotifierProvider);
     final notifier = ref.watch(dashboardNotifierProvider.notifier);
     final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 1000;
     final filterColumnCount = screenWidth > 1100 ? 4 : 1;
     final summaryColumnCount = screenWidth > 1400
         ? 4
@@ -161,7 +161,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         isLoading: state.isLoading,
         child: SingleChildScrollView(
           controller: _scrollController,
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            20,
+            20,
+            20 + MediaQuery.of(context).padding.bottom + 96,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -186,7 +191,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 crossAxisSpacing: 16,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: 4.5,
+                childAspectRatio: isMobile ? 3.2 : 4.5,
                 children: [
                   _buildDropdownField(
                     hint: _districtHint,
@@ -221,7 +226,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 crossAxisSpacing: 16,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: 3.2,
+                childAspectRatio: isMobile ? 2.0 : 2.2,
                 children: [
                   _buildKeyMetricCard(
                     context,
@@ -311,104 +316,195 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 6,
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Vehicle Distribution',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+              const SizedBox(height: 16),
+              if (isMobile) ...[
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Vehicle Distribution',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: 260,
+                          child: SfCircularChart(
+                            legend: Legend(
+                              isVisible: true,
+                              overflowMode: LegendItemOverflowMode.wrap,
+                              position: LegendPosition.bottom,
                             ),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              height: 360,
-                              child: SfCircularChart(
-                                legend: Legend(
+                            series: <DoughnutSeries<_ChartData, String>>[
+                              DoughnutSeries<_ChartData, String>(
+                                animationDuration: 0,
+                                dataSource: _vehicleDistributionData,
+                                xValueMapper: (data, _) => data.label,
+                                yValueMapper: (data, _) => data.value,
+                                pointColorMapper: (data, _) => data.color,
+                                dataLabelSettings: const DataLabelSettings(
                                   isVisible: true,
-                                  overflowMode: LegendItemOverflowMode.wrap,
-                                  position: LegendPosition.bottom,
                                 ),
-                                series: <DoughnutSeries<_ChartData, String>>[
-                                  DoughnutSeries<_ChartData, String>(
-                                    animationDuration: 0,
-                                    dataSource: _vehicleDistributionData,
-                                    xValueMapper: (data, _) => data.label,
-                                    yValueMapper: (data, _) => data.value,
-                                    pointColorMapper: (data, _) => data.color,
-                                    dataLabelSettings: const DataLabelSettings(
-                                      isVisible: true,
-                                    ),
-                                  ),
-                                ],
                               ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Total Revenue Generated',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: 260,
+                          child: SfCartesianChart(
+                            enableAxisAnimation: false,
+                            primaryXAxis: CategoryAxis(
+                              labelRotation: 45,
+                              majorGridLines: const MajorGridLines(width: 0),
                             ),
-                          ],
+                            primaryYAxis: NumericAxis(labelFormat: '₹{value}'),
+                            tooltipBehavior: TooltipBehavior(enable: true),
+                            series: <ColumnSeries<_ChartData, String>>[
+                              ColumnSeries<_ChartData, String>(
+                                animationDuration: 0,
+                                dataSource: _revenueSeries,
+                                xValueMapper: (data, _) => data.label,
+                                yValueMapper: (data, _) => data.value,
+                                pointColorMapper: (data, _) => data.color,
+                                dataLabelSettings: const DataLabelSettings(
+                                  isVisible: true,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ] else ...[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 6,
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Vehicle Distribution',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                height: 360,
+                                child: SfCircularChart(
+                                  legend: Legend(
+                                    isVisible: true,
+                                    overflowMode: LegendItemOverflowMode.wrap,
+                                    position: LegendPosition.bottom,
+                                  ),
+                                  series: <DoughnutSeries<_ChartData, String>>[
+                                    DoughnutSeries<_ChartData, String>(
+                                      animationDuration: 0,
+                                      dataSource: _vehicleDistributionData,
+                                      xValueMapper: (data, _) => data.label,
+                                      yValueMapper: (data, _) => data.value,
+                                      pointColorMapper: (data, _) => data.color,
+                                      dataLabelSettings:
+                                          const DataLabelSettings(
+                                            isVisible: true,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    flex: 4,
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Total Revenue Generated',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 4,
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Total Revenue Generated',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              height: 360,
-                              child: SfCartesianChart(
-                                enableAxisAnimation: false,
-                                primaryXAxis: CategoryAxis(
-                                  labelRotation: 45,
-                                  majorGridLines: const MajorGridLines(
-                                    width: 0,
-                                  ),
-                                ),
-                                primaryYAxis: NumericAxis(
-                                  labelFormat: '₹{value}',
-                                ),
-                                tooltipBehavior: TooltipBehavior(enable: true),
-                                series: <ColumnSeries<_ChartData, String>>[
-                                  ColumnSeries<_ChartData, String>(
-                                    animationDuration: 0,
-                                    dataSource: _revenueSeries,
-                                    xValueMapper: (data, _) => data.label,
-                                    yValueMapper: (data, _) => data.value,
-                                    pointColorMapper: (data, _) => data.color,
-                                    dataLabelSettings: const DataLabelSettings(
-                                      isVisible: true,
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                height: 360,
+                                child: SfCartesianChart(
+                                  enableAxisAnimation: false,
+                                  primaryXAxis: CategoryAxis(
+                                    labelRotation: 45,
+                                    majorGridLines: const MajorGridLines(
+                                      width: 0,
                                     ),
                                   ),
-                                ],
+                                  primaryYAxis: NumericAxis(
+                                    labelFormat: '₹{value}',
+                                  ),
+                                  tooltipBehavior: TooltipBehavior(
+                                    enable: true,
+                                  ),
+                                  series: <ColumnSeries<_ChartData, String>>[
+                                    ColumnSeries<_ChartData, String>(
+                                      animationDuration: 0,
+                                      dataSource: _revenueSeries,
+                                      xValueMapper: (data, _) => data.label,
+                                      yValueMapper: (data, _) => data.value,
+                                      pointColorMapper: (data, _) => data.color,
+                                      dataLabelSettings:
+                                          const DataLabelSettings(
+                                            isVisible: true,
+                                          ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 24),
             ],
           ),
@@ -440,9 +536,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     required ValueChanged<String?> onChanged,
   }) {
     return DropdownButtonFormField<String>(
+      isExpanded: true,
+      isDense: true,
       initialValue: value,
       hint: Text(hint),
       decoration: InputDecoration(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
         filled: true,
         fillColor: Colors.grey.shade100,
         border: OutlineInputBorder(
@@ -505,7 +607,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            Expanded(
+            SizedBox(
+              height: 260,
               child: SfCircularChart(
                 legend: Legend(
                   isVisible: true,

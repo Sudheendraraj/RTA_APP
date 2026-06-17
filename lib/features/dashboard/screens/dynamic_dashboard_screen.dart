@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -6,6 +8,7 @@ import '../../../core/widgets/loading_overlay.dart';
 import '../dashboard_notifier_v2.dart';
 import '../models/dashboard_config.dart';
 import '../models/chart_data.dart';
+import '../models/filter_options.dart';
 import '../models/metric_value.dart';
 
 class DynamicDashboardScreen extends ConsumerStatefulWidget {
@@ -93,7 +96,12 @@ class _DynamicDashboardScreenState
               isLoading: state.isLoading,
               child: SingleChildScrollView(
                 controller: _scrollController,
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  20,
+                  20,
+                  20 + MediaQuery.of(context).padding.bottom + 96,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -209,7 +217,7 @@ class _DynamicDashboardScreenState
     List<String> options,
   ) {
     return DropdownButtonFormField<String>(
-      value: _selectedFilters[filterConfig.id],
+      initialValue: _selectedFilters[filterConfig.id],
       hint: Text(filterConfig.hint),
       decoration: InputDecoration(
         label: Text(filterConfig.label),
@@ -322,7 +330,7 @@ class _DynamicDashboardScreenState
       crossAxisSpacing: 16,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 3.2,
+      childAspectRatio: isMobile ? 2.0 : 3.2,
       children: sortedMetrics.map((metricConfig) {
         final metricValue = state.metrics
             .firstWhere(
@@ -350,12 +358,16 @@ class _DynamicDashboardScreenState
         children: [
           Icon(_getIconData(metricConfig.icon), color: Colors.white, size: 28),
           const SizedBox(height: 16),
-          Text(
-            metricValue.toString(),
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              metricValue.toString(),
+              style: const TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -400,20 +412,24 @@ class _DynamicDashboardScreenState
     double screenWidth,
     bool isMobile,
   ) {
+    final chartHeight = isMobile ? math.max(300, screenWidth * 0.64) : 360;
+    final cardPadding = isMobile ? 14.0 : 20.0;
+    final titleStyle = TextStyle(
+      fontSize: isMobile ? 16 : 18,
+      fontWeight: FontWeight.bold,
+    );
+
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(cardPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              chartConfig.title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
+            Text(chartConfig.title, style: titleStyle),
+            SizedBox(height: isMobile ? 12 : 16),
             SizedBox(
-              height: 360,
-              child: _buildDynamicChart(chartConfig.type, chartData),
+              height: chartHeight,
+              child: _buildDynamicChart(chartConfig.type, chartData, isMobile),
             ),
           ],
         ),
@@ -421,7 +437,11 @@ class _DynamicDashboardScreenState
     );
   }
 
-  Widget _buildDynamicChart(String chartType, List<DynamicChartData> data) {
+  Widget _buildDynamicChart(
+    String chartType,
+    List<DynamicChartData> data,
+    bool isMobile,
+  ) {
     if (data.isEmpty) {
       return const Center(child: Text('No data available'));
     }
@@ -434,7 +454,13 @@ class _DynamicDashboardScreenState
             isVisible: true,
             overflowMode: LegendItemOverflowMode.wrap,
             position: LegendPosition.bottom,
+            iconHeight: isMobile ? 12 : 16,
+            iconWidth: isMobile ? 12 : 16,
+            itemPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            textStyle: TextStyle(fontSize: isMobile ? 11 : 12),
           ),
+          margin: EdgeInsets.zero,
+          plotAreaBorderWidth: 0,
           series: <DoughnutSeries<DynamicChartData, String>>[
             DoughnutSeries<DynamicChartData, String>(
               animationDuration: 0,
@@ -449,12 +475,19 @@ class _DynamicDashboardScreenState
         );
       case 'column':
         return SfCartesianChart(
+          margin: const EdgeInsets.all(8),
+          plotAreaBorderWidth: 0,
           enableAxisAnimation: false,
           primaryXAxis: CategoryAxis(
             labelRotation: 45,
             majorGridLines: const MajorGridLines(width: 0),
+            labelAlignment: LabelAlignment.center,
+            labelIntersectAction: AxisLabelIntersectAction.multipleRows,
           ),
-          primaryYAxis: NumericAxis(labelFormat: '₹{value}'),
+          primaryYAxis: NumericAxis(
+            labelFormat: '₹{value}',
+            axisLine: const AxisLine(width: 0),
+          ),
           tooltipBehavior: TooltipBehavior(enable: true),
           series: <ColumnSeries<DynamicChartData, String>>[
             ColumnSeries<DynamicChartData, String>(
@@ -470,6 +503,18 @@ class _DynamicDashboardScreenState
         );
       case 'line':
         return SfCartesianChart(
+          margin: const EdgeInsets.all(8),
+          plotAreaBorderWidth: 0,
+          primaryXAxis: CategoryAxis(
+            labelRotation: 45,
+            majorGridLines: const MajorGridLines(width: 0),
+            labelAlignment: LabelAlignment.center,
+            labelIntersectAction: AxisLabelIntersectAction.multipleRows,
+          ),
+          primaryYAxis: NumericAxis(
+            labelFormat: '{value}',
+            axisLine: const AxisLine(width: 0),
+          ),
           series: <LineSeries<DynamicChartData, String>>[
             LineSeries<DynamicChartData, String>(
               animationDuration: 0,

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/loading_overlay.dart';
-import 'auth_notifier.dart';
+import 'package:go_router/go_router.dart';
+import '../auth/auth_notifier.dart';
+import '../../core/constants/app_constants.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -33,13 +35,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _errorMessage = null;
     });
     try {
-      await ref
-          .read(authNotifierProvider.notifier)
-          .login(
-            _usernameController.text.trim(),
-            _passwordController.text,
-            _rememberMe,
-          );
+      final controller = ref.read(authNotifierProvider.notifier);
+      await controller.login(
+        _usernameController.text.trim(),
+        _passwordController.text,
+        _rememberMe,
+      );
+      if (mounted) {
+        context.go(AppRoutes.dashboard);
+      }
     } catch (error) {
       setState(() {
         _errorMessage = error.toString();
@@ -218,9 +222,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   children: [
                                     TextFormField(
                                       controller: _usernameController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Username',
-                                        prefixIcon: Icon(Icons.person),
+                                      decoration: _buildLoginInputDecoration(
+                                        hintText: 'Username',
+                                        icon: Icons.person,
                                       ),
                                       validator: (value) =>
                                           value?.isEmpty == true
@@ -231,9 +235,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     TextFormField(
                                       controller: _passwordController,
                                       obscureText: true,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Password',
-                                        prefixIcon: Icon(Icons.lock),
+                                      decoration: _buildLoginInputDecoration(
+                                        hintText: 'Password',
+                                        icon: Icons.lock,
                                       ),
                                       validator: (value) =>
                                           value?.isEmpty == true
@@ -243,9 +247,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     const SizedBox(height: 18),
                                     TextFormField(
                                       controller: _captchaController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Captcha (enter rta2026)',
-                                        prefixIcon: Icon(Icons.shield),
+                                      decoration: _buildLoginInputDecoration(
+                                        hintText: 'Captcha (enter rta2026)',
+                                        icon: Icons.shield,
                                       ),
                                       validator: (value) =>
                                           value?.isEmpty == true
@@ -301,6 +305,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  static InputDecoration _buildLoginInputDecoration({
+    required String hintText,
+    required IconData icon,
+  }) {
+    return InputDecoration(
+      hintText: hintText,
+      prefixIcon: Icon(icon, color: Colors.white70),
+      filled: true,
+      fillColor: const Color.fromRGBO(255, 255, 255, 0.14),
+      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide(color: Colors.white24),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide(color: Colors.white70, width: 1.5),
+      ),
+      hintStyle: const TextStyle(color: Colors.white70),
+      labelStyle: const TextStyle(color: Colors.white70),
     );
   }
 
