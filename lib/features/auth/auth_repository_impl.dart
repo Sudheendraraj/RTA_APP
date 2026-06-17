@@ -19,7 +19,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String username,
     required String password,
   }) async {
-    final response = await _apiClient.get<String>(
+    final response = await _apiClient.get<Map<String, dynamic>>(
       '/auth/login',
       queryParameters: {'username': username, 'password': password},
     );

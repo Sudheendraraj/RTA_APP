@@ -39,10 +39,11 @@ class ApiClient {
           handler.next(options);
         },
         onResponse: (response, handler) {
-          if (kDebugMode)
+          if (kDebugMode) {
             debugPrint(
               '← ${response.statusCode} ${response.requestOptions.path}',
             );
+          }
           handler.next(response);
         },
         onError: (err, handler) async {
@@ -102,6 +103,8 @@ class ApiClient {
     String message = 'Network error';
     if (e.response?.data is Map && e.response?.data['message'] != null) {
       message = e.response!.data['message'].toString();
+    } else if (code == 401 || code == 403) {
+      message = 'Invalid username or password.';
     } else if (e.message != null) {
       message = e.message.toString();
     }

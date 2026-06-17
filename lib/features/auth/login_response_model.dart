@@ -21,16 +21,12 @@ class LoginResponse {
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
     final normalized = <String, dynamic>{
-      'accessToken': json['accessToken'] ?? json['access_token'] ?? '',
+      'accessToken': json['accessToken'] ?? json['access_token'] ?? json['token'] ?? '',
       'refreshToken': json['refreshToken'] ?? json['refresh_token'] ?? '',
     };
 
-    final userJson = json['user'];
-    if (userJson is Map<String, dynamic>) {
-      normalized['user'] = userJson;
-    } else if (userJson is Map) {
-      normalized['user'] = Map<String, dynamic>.from(userJson);
-    }
+    final userJson = json['user'] is Map ? json['user'] : json;
+    normalized['user'] = Map<String, dynamic>.from(userJson);
 
     return _$LoginResponseFromJson(normalized);
   }
@@ -47,10 +43,13 @@ class LoginUser {
   final String role;
 
   factory LoginUser.fromJson(Map<String, dynamic> json) {
+    final username = json['username'] ?? json['userName'] ?? '';
+    final name = json['name'] ?? json['fullName'] ?? (username.isNotEmpty ? username : '');
+    final role = json['role'] ?? json['userRole'] ?? '';
     return _$LoginUserFromJson(<String, dynamic>{
-      'username': json['username'] ?? json['userName'] ?? '',
-      'name': json['name'] ?? json['fullName'] ?? '',
-      'role': json['role'] ?? json['userRole'] ?? '',
+      'username': username,
+      'name': name,
+      'role': role,
     });
   }
 

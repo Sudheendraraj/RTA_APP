@@ -412,7 +412,7 @@ class _DynamicDashboardScreenState
     double screenWidth,
     bool isMobile,
   ) {
-    final chartHeight = isMobile ? math.max(300, screenWidth * 0.64) : 360;
+    final chartHeight = isMobile ? math.max(300.0, screenWidth * 0.64) : 360.0;
     final cardPadding = isMobile ? 14.0 : 20.0;
     final titleStyle = TextStyle(
       fontSize: isMobile ? 16 : 18,
@@ -456,11 +456,10 @@ class _DynamicDashboardScreenState
             position: LegendPosition.bottom,
             iconHeight: isMobile ? 12 : 16,
             iconWidth: isMobile ? 12 : 16,
-            itemPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            itemPadding: 8.0,
             textStyle: TextStyle(fontSize: isMobile ? 11 : 12),
           ),
           margin: EdgeInsets.zero,
-          plotAreaBorderWidth: 0,
           series: <DoughnutSeries<DynamicChartData, String>>[
             DoughnutSeries<DynamicChartData, String>(
               animationDuration: 0,
