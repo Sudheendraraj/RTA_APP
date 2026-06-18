@@ -17,19 +17,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _captchaController = TextEditingController();
   bool _rememberMe = true;
   bool _isLoading = false;
   String? _errorMessage;
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_captchaController.text.trim().toLowerCase() != 'rta2026') {
-      setState(() {
-        _errorMessage = 'Please enter the correct captcha.';
-      });
-      return;
-    }
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -64,167 +57,333 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         isLoading: _isLoading,
         child: Stack(
           children: [
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF0F5D55), Color(0xFF0A5048)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+            // Darkened traffic background
+            Positioned.fill(
+              child: Image.asset(
+                'assets/images/background_traffic.png',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: const Color(0xFF0A5048),
                 ),
               ),
             ),
             Positioned.fill(
               child: Container(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: const Alignment(-0.8, -0.8),
-                    radius: 1.2,
-                    colors: [
-                      Color.fromRGBO(255, 255, 255, 0.08),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
+                color: const Color(0xCC0D2823), // Dark teal/green semi-transparent overlay
               ),
             ),
-            Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 32,
-                ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1040),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 18,
-                          horizontal: 20,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Color.fromRGBO(255, 255, 255, 0.08),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Color.fromRGBO(255, 255, 255, 0.18),
-                          ),
-                        ),
-                        child: Wrap(
-                          alignment: WrapAlignment.center,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 20,
-                          runSpacing: 20,
-                          children: [
-                            SizedBox(
-                              width: 140,
-                              child: _buildPortraitCard(
-                                label: 'Sri A. Revanth Reddy',
-                                subtitle: "Hon'ble Chief Minister",
-                                assetPath: 'assets/images/revanth.png',
-                              ),
-                            ),
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(
-                                minWidth: 260,
-                                maxWidth: 520,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: const [
-                                  Text(
-                                    'VIEAS',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 1.2,
+            Column(
+              children: [
+                // Top Full-width Header Bar
+                Container(
+                  width: double.infinity,
+                  color: const Color(0xFF0F5D55),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  child: SafeArea(
+                    bottom: false,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        if (constraints.maxWidth >= 950) {
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Left Portraits (CM and Deputy CM)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    width: 130,
+                                    child: _buildPortraitCard(
+                                      label: 'Sri A. Revanth Reddy',
+                                      subtitle: "Hon'ble Chief Minister",
+                                      assetPath: 'assets/images/revanth.png',
                                     ),
                                   ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Vehicle Identification and Enforcement Automation System',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 14,
-                                      letterSpacing: 0.2,
+                                  const SizedBox(width: 16),
+                                  SizedBox(
+                                    width: 140,
+                                    child: _buildPortraitCard(
+                                      label: 'Sri M. Bhatti Vikramarka',
+                                      subtitle: "Hon'ble Deputy Chief Minister",
+                                      assetPath: 'assets/images/bhatti.png',
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                            SizedBox(
-                              width: 140,
-                              child: _buildPortraitCard(
-                                label: 'Sri Ponnam Prabhakar',
-                                subtitle: "Hon'ble Minister for Transport",
-                                assetPath: 'assets/images/ponnam.png',
+                              // Center Emblem and VIEAS TELANGANA Text
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Image.asset(
+                                        'assets/images/telangana_logo.png',
+                                        height: 55,
+                                        errorBuilder: (context, error, stackTrace) => const Icon(
+                                          Icons.account_balance,
+                                          color: Colors.white,
+                                          size: 40,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: const [
+                                          Text(
+                                            'VIEAS',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 28,
+                                              fontWeight: FontWeight.w900,
+                                              fontStyle: FontStyle.italic,
+                                              height: 1.0,
+                                            ),
+                                          ),
+                                          Text(
+                                            'TELANGANA',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w300,
+                                              fontStyle: FontStyle.italic,
+                                              height: 1.1,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Vehicle Identification and Enforcement Automation System',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ],
                               ),
+                              // Right Portrait (Transport Minister)
+                              SizedBox(
+                                width: 145,
+                                child: _buildPortraitCard(
+                                  label: 'Sri Ponnam Prabhakar',
+                                  subtitle: "Hon'ble Minister for Transport",
+                                  assetPath: 'assets/images/ponnam.png',
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          // Mobile/Tablet responsive wrapping layout
+                          return SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 110,
+                                  child: _buildPortraitCard(
+                                    label: 'Sri A. Revanth Reddy',
+                                    subtitle: "CM",
+                                    assetPath: 'assets/images/revanth.png',
+                                    size: 44,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                SizedBox(
+                                  width: 120,
+                                  child: _buildPortraitCard(
+                                    label: 'Sri M. Bhatti Vikramarka',
+                                    subtitle: "Deputy CM",
+                                    assetPath: 'assets/images/bhatti.png',
+                                    size: 44,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Image.asset(
+                                          'assets/images/telangana_logo.png',
+                                          height: 40,
+                                          errorBuilder: (context, error, stackTrace) => const Icon(
+                                            Icons.account_balance,
+                                            color: Colors.white,
+                                            size: 30,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: const [
+                                            Text(
+                                              'VIEAS',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.w900,
+                                                fontStyle: FontStyle.italic,
+                                                height: 1.0,
+                                              ),
+                                            ),
+                                            Text(
+                                              'TELANGANA',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w300,
+                                                fontStyle: FontStyle.italic,
+                                                height: 1.1,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    const Text(
+                                      'Vehicle Identification & Enforcement',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 16),
+                                SizedBox(
+                                  width: 120,
+                                  child: _buildPortraitCard(
+                                    label: 'Sri Ponnam Prabhakar',
+                                    subtitle: "Transport Minister",
+                                    assetPath: 'assets/images/ponnam.png',
+                                    size: 44,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      Container(
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                // Center Glassmorphic Login Card
+                Expanded(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                      child: Container(
+                        width: 460,
                         decoration: BoxDecoration(
-                          color: Color.fromRGBO(255, 255, 255, 0.14),
-                          borderRadius: BorderRadius.circular(28),
+                          color: const Color(0xCC1A302C), // Dark green semi-transparent card background
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: Color.fromRGBO(255, 255, 255, 0.16),
+                            color: Colors.white.withValues(alpha: 0.12),
+                            width: 1.5,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Color.fromRGBO(0, 0, 0, 0.16),
-                              blurRadius: 32,
-                              offset: const Offset(0, 16),
+                              color: Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 24,
+                              offset: const Offset(0, 12),
                             ),
                           ],
                         ),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             vertical: 36,
-                            horizontal: 44,
+                            horizontal: 40,
                           ),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               const Text(
                                 'RTA Login',
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w800,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               const Text(
                                 'Government of Telangana Transport Department',
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Colors.white70,
-                                  fontSize: 16,
+                                  fontSize: 13,
                                 ),
                               ),
-                              const SizedBox(height: 30),
+                              const SizedBox(height: 28),
                               if (_errorMessage != null)
                                 Padding(
                                   padding: const EdgeInsets.only(bottom: 16),
-                                  child: Text(
-                                    _errorMessage!,
-                                    style: const TextStyle(
-                                      color: Colors.orangeAccent,
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.redAccent.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+                                    ),
+                                    child: Text(
+                                      _errorMessage!,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: Colors.orangeAccent,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ),
                                 ),
                               Form(
                                 key: _formKey,
                                 child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    const Text(
+                                      'Username',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
                                     TextFormField(
                                       controller: _usernameController,
-                                      decoration: _buildLoginInputDecoration(
+                                      style: const TextStyle(color: Colors.black87, fontSize: 15),
+                                      decoration: InputDecoration(
                                         hintText: 'Username',
-                                        icon: Icons.person,
+                                        hintStyle: const TextStyle(color: Colors.black38),
+                                        filled: true,
+                                        fillColor: const Color(0xFFE8ECEB),
+                                        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                          borderSide: const BorderSide(color: Color(0xFFFBB03B), width: 1.5),
+                                        ),
                                       ),
                                       validator: (value) =>
                                           value?.isEmpty == true
@@ -232,12 +391,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                           : null,
                                     ),
                                     const SizedBox(height: 18),
+                                    const Text(
+                                      'Password',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
                                     TextFormField(
                                       controller: _passwordController,
                                       obscureText: true,
-                                      decoration: _buildLoginInputDecoration(
+                                      style: const TextStyle(color: Colors.black87, fontSize: 15),
+                                      decoration: InputDecoration(
                                         hintText: 'Password',
-                                        icon: Icons.lock,
+                                        hintStyle: const TextStyle(color: Colors.black38),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                          borderSide: const BorderSide(color: Color(0xFFFBB03B), width: 1.5),
+                                        ),
                                       ),
                                       validator: (value) =>
                                           value?.isEmpty == true
@@ -245,49 +429,60 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                           : null,
                                     ),
                                     const SizedBox(height: 18),
-                                    TextFormField(
-                                      controller: _captchaController,
-                                      decoration: _buildLoginInputDecoration(
-                                        hintText: 'Captcha (enter rta2026)',
-                                        icon: Icons.shield,
-                                      ),
-                                      validator: (value) =>
-                                          value?.isEmpty == true
-                                          ? 'Enter captcha'
-                                          : null,
-                                    ),
-                                    const SizedBox(height: 24),
                                     Row(
                                       children: [
-                                        Checkbox(
-                                          value: _rememberMe,
-                                          onChanged: (value) => setState(
-                                            () => _rememberMe = value ?? true,
+                                        Theme(
+                                          data: Theme.of(context).copyWith(
+                                            unselectedWidgetColor: Colors.white,
                                           ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              6,
+                                          child: SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: Checkbox(
+                                              value: _rememberMe,
+                                              activeColor: const Color(0xFFFBB03B),
+                                              checkColor: Colors.black,
+                                              side: const BorderSide(color: Colors.white, width: 1.5),
+                                              onChanged: (value) => setState(
+                                                () => _rememberMe = value ?? true,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
                                             ),
                                           ),
-                                          fillColor: WidgetStateProperty.all(
-                                            Colors.white,
-                                          ),
                                         ),
-                                        const SizedBox(width: 12),
+                                        const SizedBox(width: 10),
                                         const Text(
                                           'Remember Me',
                                           style: TextStyle(
-                                            color: Colors.white70,
+                                            color: Colors.white,
+                                            fontSize: 14,
                                           ),
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 18),
+                                    const SizedBox(height: 28),
                                     SizedBox(
                                       width: double.infinity,
+                                      height: 48,
                                       child: ElevatedButton(
                                         onPressed: _login,
-                                        child: const Text('Login'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFFFBB03B),
+                                          foregroundColor: const Color(0xFF1E3531),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          elevation: 2,
+                                        ),
+                                        child: const Text(
+                                          'Login',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -297,10 +492,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -308,51 +503,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  static InputDecoration _buildLoginInputDecoration({
-    required String hintText,
-    required IconData icon,
-  }) {
-    return InputDecoration(
-      hintText: hintText,
-      prefixIcon: Icon(icon, color: Colors.white70),
-      filled: true,
-      fillColor: const Color.fromRGBO(255, 255, 255, 0.14),
-      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(color: Colors.white24),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(color: Colors.white70, width: 1.5),
-      ),
-      hintStyle: const TextStyle(color: Colors.white70),
-      labelStyle: const TextStyle(color: Colors.white70),
-    );
-  }
-
   Widget _buildPortraitCard({
     required String label,
     required String subtitle,
     String? assetPath,
+    double size = 50,
   }) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 76,
-          height: 76,
+          width: size,
+          height: size,
           decoration: BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
-            boxShadow: [
+            border: Border.all(color: Colors.white, width: 1.5),
+            boxShadow: const [
               BoxShadow(
-                color: Color.fromRGBO(0, 0, 0, 0.18),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
+                color: Colors.black26,
+                blurRadius: 6,
+                offset: Offset(0, 3),
               ),
             ],
           ),
@@ -361,31 +532,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ? Image.asset(
                     assetPath,
                     fit: BoxFit.cover,
-                    width: 76,
-                    height: 76,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
+                    width: size,
+                    height: size,
+                    errorBuilder: (context, error, stackTrace) => Icon(
                       Icons.person,
-                      color: Color(0xFF0B7166),
-                      size: 38,
+                      color: const Color(0xFF0F5D55),
+                      size: size * 0.5,
                     ),
                   )
-                : const Icon(Icons.person, color: Color(0xFF0B7166), size: 38),
+                : Icon(Icons.person, color: const Color(0xFF0F5D55), size: size * 0.5),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         Text(
           label,
           textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
+            fontSize: 11,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Text(
           subtitle,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.8),
+            fontSize: 9,
+          ),
         ),
       ],
     );
