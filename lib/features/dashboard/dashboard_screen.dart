@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/widgets/loading_overlay.dart';
+import '../../core/widgets/responsive_scaffold.dart';
 import 'dashboard_notifier.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -20,36 +22,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   static const _cameraHint = 'Select All Camera';
   static const _timeRangeHint = 'Select All Time Range';
 
-  static const List<String> _districtOptions = [
-    'Select All District',
-    'Nizamabad',
-    'Adilabad',
-    'Sangareddy',
-    'Kamareddy',
-    'Nirmal',
-    'Komaram Bheem Asifabad',
-    'Jogulamba Gadwal',
-    'Narayanpet',
-    'Nalgonda',
-    'Suryapet',
-    'Khammam',
-    'Bhadradri Kothagudem',
-    'Jayashankar Bhupalpally',
-    'Mulugu',
-    'Peddapalli',
-    'Karimnagar',
-    'Mancherial',
-    'Vikarabad',
-    'Rangareddy',
-    'Medchal Malkajgiri',
-    'Mahbubnagar',
-    'Jagtial',
-    'Siddipet',
-    'Jangaon',
-    'Hanamkonda',
-    'Yadadri Bhuvanagiri',
-  ];
-
   static const List<String> _timeRangeOptions = [
     'Select All Time Range',
     'Today',
@@ -58,7 +30,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     'This Year',
   ];
 
-  String? _selectedDistrict = _districtOptions.first;
+  String? _selectedDistrict = 'Select All District';
+  String? _selectedZone = 'Select All Zone';
+  String? _selectedCamera = 'Select All Camera';
   String? _selectedTimeRange = _timeRangeOptions.first;
 
   static final _summaryMetrics = [
@@ -78,21 +52,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     _ChartData('All Clear', 3740, Colors.green.shade300),
     _ChartData('Registration', 192, Colors.yellow.shade700),
     _ChartData('Missing Data', 10910, Colors.amberAccent),
-  ];
-
-  static final _revenueSeries = [
-    _ChartData('Jan', 0, Colors.transparent),
-    _ChartData('Feb', 0, Colors.transparent),
-    _ChartData('Mar', 0, Colors.transparent),
-    _ChartData('Apr', 20888, Colors.deepOrange),
-    _ChartData('May', 4597, Colors.blueAccent),
-    _ChartData('Jun', 0, Colors.transparent),
-    _ChartData('Jul', 0, Colors.transparent),
-    _ChartData('Aug', 0, Colors.transparent),
-    _ChartData('Sep', 0, Colors.transparent),
-    _ChartData('Oct', 0, Colors.transparent),
-    _ChartData('Nov', 0, Colors.transparent),
-    _ChartData('Dec', 0, Colors.transparent),
   ];
 
   bool get _isAtBottom {
@@ -138,22 +97,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final state = ref.watch(dashboardNotifierProvider);
     final notifier = ref.watch(dashboardNotifierProvider.notifier);
     final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 1000;
-    final filterColumnCount = screenWidth > 1100 ? 4 : 1;
-    final summaryColumnCount = screenWidth > 1400
-        ? 4
-        : screenWidth > 1000
-        ? 2
-        : 1;
-    final donutColumnCount = screenWidth > 1600
-        ? 5
-        : screenWidth > 1200
-        ? 3
-        : 1;
+    final isDesktop = screenWidth >= 900;
+    final isMobile = !isDesktop;
+    
+    final summaryColumnCount = isDesktop ? 4 : 1;
+    final donutColumnCount = isDesktop ? 3 : 1;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF3F6F6),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _toggleScroll,
+        backgroundColor: const Color(0xFF81D8B7),
+        foregroundColor: const Color(0xFF0F5D55),
         icon: Icon(_isAtBottom ? Icons.arrow_upward : Icons.arrow_downward),
         label: Text(_isAtBottom ? 'Scroll Top' : 'Scroll Down'),
       ),
@@ -161,253 +116,262 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         isLoading: state.isLoading,
         child: SingleChildScrollView(
           controller: _scrollController,
-          padding: EdgeInsets.fromLTRB(
-            20,
-            20,
-            20,
-            20 + MediaQuery.of(context).padding.bottom + 96,
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Dashboard',
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700),
-                  ),
-                  FilledButton.icon(
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Refresh'),
-                    onPressed: notifier.fetchDashboard,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              GridView.count(
-                crossAxisCount: filterColumnCount,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: isMobile ? 3.2 : 4.5,
-                children: [
-                  _buildDropdownField(
-                    hint: _districtHint,
-                    value: _selectedDistrict,
-                    options: _districtOptions,
-                    onChanged: (value) =>
-                        setState(() => _selectedDistrict = value),
-                  ),
-                  _buildFilterField(context, _zoneHint),
-                  _buildFilterField(context, _cameraHint),
-                  _buildDropdownField(
-                    hint: _timeRangeHint,
-                    value: _selectedTimeRange,
-                    options: _timeRangeOptions,
-                    onChanged: (value) =>
-                        setState(() => _selectedTimeRange = value),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton(
-                  onPressed: notifier.fetchDashboard,
-                  child: const Text('Submit'),
-                ),
-              ),
-              const SizedBox(height: 24),
-              GridView.count(
-                crossAxisCount: summaryColumnCount,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: isMobile ? 2.0 : 2.2,
-                children: [
-                  _buildKeyMetricCard(
-                    context,
-                    title: 'Total No.of Vehicles',
-                    value: state.kpis?.totalVehiclesMonth.toString() ?? '0',
-                    icon: Icons.directions_car,
-                    backgroundColor: Colors.pink.shade400,
-                  ),
-                  _buildKeyMetricCard(
-                    context,
-                    title: 'e-Challan',
-                    value: '0',
-                    icon: Icons.receipt_long,
-                    backgroundColor: Colors.deepPurple.shade400,
-                  ),
-                  _buildKeyMetricCard(
-                    context,
-                    title: 'Manual Challan',
-                    value: '0',
-                    icon: Icons.money_off,
-                    backgroundColor: Colors.blue.shade400,
-                  ),
-                  _buildKeyMetricCard(
-                    context,
-                    title: 'Vehicles Seized',
-                    value: '0',
-                    icon: Icons.block,
-                    backgroundColor: Colors.orange.shade400,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              GridView.count(
-                crossAxisCount: donutColumnCount,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: 1.1,
-                children: _summaryMetrics
-                    .map((metric) => _buildComplianceCard(metric))
-                    .toList(),
-              ),
-              const SizedBox(height: 16),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Registration',
+              // Top Horizontal Filter Bar
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isWide = constraints.maxWidth >= 950;
+                    
+                    final logo = InkWell(
+                      onTap: () {
+                        ref.read(sidebarCollapsedProvider.notifier).update((state) => !state);
+                      },
+                      child: Tooltip(
+                        message: 'Toggle Sidebar',
+                        child: Image.asset(
+                          'assets/images/telangana_logo.png',
+                          height: 35,
+                          errorBuilder: (context, error, stackTrace) => const Icon(
+                            Icons.account_balance,
+                            color: Color(0xFF0F5D55),
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                    );
+
+                    final districtDropdown = _buildDropdownField(
+                      hint: _districtHint,
+                      value: _selectedDistrict,
+                      options: state.districts,
+                      onChanged: (value) => setState(() => _selectedDistrict = value),
+                    );
+
+                    final zoneDropdown = _buildDropdownField(
+                      hint: _zoneHint,
+                      value: _selectedZone,
+                      options: const ['Select All Zone'],
+                      onChanged: (value) => setState(() => _selectedZone = value),
+                    );
+
+                    final cameraDropdown = _buildDropdownField(
+                      hint: _cameraHint,
+                      value: _selectedCamera,
+                      options: const ['Select All Camera'],
+                      onChanged: (value) => setState(() => _selectedCamera = value),
+                    );
+
+                    final timeRangeDropdown = _buildDropdownField(
+                      hint: _timeRangeHint,
+                      value: _selectedTimeRange,
+                      options: _timeRangeOptions,
+                      onChanged: (value) => setState(() => _selectedTimeRange = value),
+                    );
+
+                    final submitButton = OutlinedButton(
+                      onPressed: () => notifier.fetchDashboard(
+                        district: _selectedDistrict,
+                        timeRange: _selectedTimeRange,
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF0F5D55), width: 1.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      child: const Text(
+                        'Submit',
                         style: TextStyle(
-                          fontSize: 18,
+                          color: Color(0xFF0F5D55),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        height: 320,
-                        child: SfCircularChart(
-                          legend: Legend(
-                            isVisible: true,
-                            overflowMode: LegendItemOverflowMode.wrap,
-                            position: LegendPosition.bottom,
+                    );
+
+                    if (isWide) {
+                      return Row(
+                        children: [
+                          logo,
+                          const SizedBox(width: 16),
+                          Expanded(child: districtDropdown),
+                          const SizedBox(width: 12),
+                          Expanded(child: zoneDropdown),
+                          const SizedBox(width: 12),
+                          Expanded(child: cameraDropdown),
+                          const SizedBox(width: 12),
+                          Expanded(child: timeRangeDropdown),
+                          const SizedBox(width: 16),
+                          submitButton,
+                        ],
+                      );
+                    } else {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              logo,
+                              const SizedBox(width: 12),
+                              const Text(
+                                'VIEAS Telangana',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0F5D55),
+                                ),
+                              ),
+                            ],
                           ),
-                          series: <DoughnutSeries<_ChartData, String>>[
-                            DoughnutSeries<_ChartData, String>(
-                              animationDuration: 0,
-                              dataSource: [
-                                _ChartData('Compliant', 15016, Colors.teal),
-                                _ChartData('Non-Compliant', 192, Colors.pink),
-                                _ChartData('Missing Data', 0, Colors.yellow),
-                              ],
-                              xValueMapper: (data, _) => data.label,
-                              yValueMapper: (data, _) => data.value,
-                              pointColorMapper: (data, _) => data.color,
-                              dataLabelSettings: const DataLabelSettings(
-                                isVisible: true,
+                          const SizedBox(height: 12),
+                          districtDropdown,
+                          const SizedBox(height: 8),
+                          zoneDropdown,
+                          const SizedBox(height: 8),
+                          cameraDropdown,
+                          const SizedBox(height: 8),
+                          timeRangeDropdown,
+                          const SizedBox(height: 12),
+                          submitButton,
+                        ],
+                      );
+                    }
+                  },
+                ),
+              ),
+              
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  24,
+                  20,
+                  20 + MediaQuery.of(context).padding.bottom + 96,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Grid of 4 Key Metrics Cards
+                    GridView.count(
+                      crossAxisCount: summaryColumnCount,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      childAspectRatio: isMobile ? 2.5 : 3.4,
+                      children: [
+                        _buildKeyMetricCard(
+                          context,
+                          title: 'Total No.of Vehicles',
+                          value: _getTotalVehicles(state.offenceData) > 0
+                              ? _getTotalVehicles(state.offenceData).toString()
+                              : (state.kpis?.totalVehiclesMonth.toString() ?? '66306'),
+                          icon: Icons.directions_car,
+                          backgroundColor: const Color(0xFFE54A88),
+                        ),
+                        _buildKeyMetricCard(
+                          context,
+                          title: 'e-Challan',
+                          value: _getMetricValue(state.offenceData, 'eChallan', '2'),
+                          icon: Icons.receipt_long,
+                          backgroundColor: const Color(0xFF907BE5),
+                        ),
+                        _buildKeyMetricCard(
+                          context,
+                          title: 'Manual Challan',
+                          value: _getMetricValue(state.offenceData, 'manualChallan', '2'),
+                          icon: Icons.payments,
+                          backgroundColor: const Color(0xFF33C0E5),
+                        ),
+                        _buildKeyMetricCard(
+                          context,
+                          title: 'Vehicles Seized',
+                          value: _getMetricValue(state.offenceData, 'seizedVehicles', '0'),
+                          icon: Icons.block,
+                          backgroundColor: const Color(0xFFFFA63E),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // Row/Grid of 5 Circular Charts
+                    GridView.count(
+                      crossAxisCount: donutColumnCount,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      childAspectRatio: 0.75,
+                      children: _getSummaryMetrics(state.offenceData)
+                          .map((metric) => _buildComplianceCard(metric))
+                          .toList(),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // Full-width Registration Card
+                    Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 1.5,
+                      shadowColor: Colors.black12,
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Registration',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              height: 250,
+                              child: SfCircularChart(
+                                legend: Legend(
+                                  isVisible: true,
+                                  overflowMode: LegendItemOverflowMode.wrap,
+                                  position: LegendPosition.bottom,
+                                  textStyle: const TextStyle(fontSize: 11),
+                                ),
+                                series: <DoughnutSeries<_ChartData, String>>[
+                                  DoughnutSeries<_ChartData, String>(
+                                    animationDuration: 0,
+                                    dataSource: _getRegistrationData(state.offenceData),
+                                    xValueMapper: (data, _) => data.label,
+                                    yValueMapper: (data, _) => data.value,
+                                    pointColorMapper: (data, _) => data.color,
+                                    innerRadius: '65%',
+                                    dataLabelSettings: const DataLabelSettings(
+                                      isVisible: true,
+                                      labelPosition: ChartDataLabelPosition.outside,
+                                      textStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const SizedBox(height: 16),
-              if (isMobile) ...[
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Vehicle Distribution',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          height: 260,
-                          child: SfCircularChart(
-                            legend: Legend(
-                              isVisible: true,
-                              overflowMode: LegendItemOverflowMode.wrap,
-                              position: LegendPosition.bottom,
-                            ),
-                            series: <DoughnutSeries<_ChartData, String>>[
-                              DoughnutSeries<_ChartData, String>(
-                                animationDuration: 0,
-                                dataSource: _vehicleDistributionData,
-                                xValueMapper: (data, _) => data.label,
-                                yValueMapper: (data, _) => data.value,
-                                pointColorMapper: (data, _) => data.color,
-                                dataLabelSettings: const DataLabelSettings(
-                                  isVisible: true,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Total Revenue Generated',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    const SizedBox(height: 24),
+                    
+                    // Bottom Section (Vehicle Distribution and Revenue Generated)
+                    if (isMobile) ...[
+                      Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          height: 260,
-                          child: SfCartesianChart(
-                            enableAxisAnimation: false,
-                            primaryXAxis: CategoryAxis(
-                              labelRotation: 45,
-                              majorGridLines: const MajorGridLines(width: 0),
-                            ),
-                            primaryYAxis: NumericAxis(labelFormat: '₹{value}'),
-                            tooltipBehavior: TooltipBehavior(enable: true),
-                            series: <ColumnSeries<_ChartData, String>>[
-                              ColumnSeries<_ChartData, String>(
-                                animationDuration: 0,
-                                dataSource: _revenueSeries,
-                                xValueMapper: (data, _) => data.label,
-                                yValueMapper: (data, _) => data.value,
-                                pointColorMapper: (data, _) => data.color,
-                                dataLabelSettings: const DataLabelSettings(
-                                  isVisible: true,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ] else ...[
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 6,
-                      child: Card(
+                        elevation: 1.5,
+                        shadowColor: Colors.black12,
                         child: Padding(
                           padding: const EdgeInsets.all(20),
                           child: Column(
@@ -422,24 +386,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               ),
                               const SizedBox(height: 16),
                               SizedBox(
-                                height: 360,
+                                height: 300,
                                 child: SfCircularChart(
                                   legend: Legend(
                                     isVisible: true,
                                     overflowMode: LegendItemOverflowMode.wrap,
                                     position: LegendPosition.bottom,
+                                    textStyle: const TextStyle(fontSize: 10),
                                   ),
                                   series: <DoughnutSeries<_ChartData, String>>[
                                     DoughnutSeries<_ChartData, String>(
                                       animationDuration: 0,
-                                      dataSource: _vehicleDistributionData,
+                                      dataSource: _getVehicleDistributionData(state.offenceData),
                                       xValueMapper: (data, _) => data.label,
                                       yValueMapper: (data, _) => data.value,
                                       pointColorMapper: (data, _) => data.color,
-                                      dataLabelSettings:
-                                          const DataLabelSettings(
-                                            isVisible: true,
-                                          ),
+                                      innerRadius: '60%',
+                                      dataLabelSettings: const DataLabelSettings(
+                                        isVisible: true,
+                                        labelPosition: ChartDataLabelPosition.outside,
+                                        textStyle: TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+                                      ),
+                                      dataLabelMapper: (data, _) => '${data.label}: ${data.value.toInt()}',
                                     ),
                                   ],
                                 ),
@@ -448,11 +416,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      flex: 4,
-                      child: Card(
+                      const SizedBox(height: 24),
+                      Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 1.5,
+                        shadowColor: Colors.black12,
                         child: Padding(
                           padding: const EdgeInsets.all(20),
                           child: Column(
@@ -467,32 +437,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               ),
                               const SizedBox(height: 16),
                               SizedBox(
-                                height: 360,
+                                height: 320,
                                 child: SfCartesianChart(
                                   enableAxisAnimation: false,
                                   primaryXAxis: CategoryAxis(
                                     labelRotation: 45,
-                                    majorGridLines: const MajorGridLines(
-                                      width: 0,
-                                    ),
+                                    majorGridLines: const MajorGridLines(width: 0),
                                   ),
                                   primaryYAxis: NumericAxis(
-                                    labelFormat: '₹{value}',
+                                    title: AxisTitle(
+                                      text: 'Revenue (₹)',
+                                      textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                    numberFormat: NumberFormat.compact(),
+                                    axisLine: const AxisLine(width: 0),
                                   ),
-                                  tooltipBehavior: TooltipBehavior(
-                                    enable: true,
-                                  ),
+                                  tooltipBehavior: TooltipBehavior(enable: true),
                                   series: <ColumnSeries<_ChartData, String>>[
                                     ColumnSeries<_ChartData, String>(
                                       animationDuration: 0,
-                                      dataSource: _revenueSeries,
+                                      dataSource: _getRevenueData(state.offenceData),
                                       xValueMapper: (data, _) => data.label,
                                       yValueMapper: (data, _) => data.value,
                                       pointColorMapper: (data, _) => data.color,
-                                      dataLabelSettings:
-                                          const DataLabelSettings(
-                                            isVisible: true,
-                                          ),
+                                      dataLabelMapper: (data, _) => data.value > 0
+                                          ? '₹${data.value.toStringAsFixed(2)}'
+                                          : '₹0.00',
+                                      dataLabelSettings: const DataLabelSettings(
+                                        isVisible: true,
+                                        showZeroValue: true,
+                                        labelPosition: ChartDataLabelPosition.outside,
+                                        textStyle: TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -501,30 +477,136 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ),
                         ),
                       ),
-                    ),
+                    ] else ...[
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 6,
+                            child: Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              elevation: 1.5,
+                              shadowColor: Colors.black12,
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Vehicle Distribution',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    SizedBox(
+                                      height: 360,
+                                      child: SfCircularChart(
+                                        legend: Legend(
+                                          isVisible: true,
+                                          overflowMode: LegendItemOverflowMode.wrap,
+                                          position: LegendPosition.bottom,
+                                          textStyle: const TextStyle(fontSize: 10),
+                                        ),
+                                        series: <DoughnutSeries<_ChartData, String>>[
+                                          DoughnutSeries<_ChartData, String>(
+                                            animationDuration: 0,
+                                            dataSource: _getVehicleDistributionData(state.offenceData),
+                                            xValueMapper: (data, _) => data.label,
+                                            yValueMapper: (data, _) => data.value,
+                                            pointColorMapper: (data, _) => data.color,
+                                            innerRadius: '60%',
+                                            dataLabelSettings: const DataLabelSettings(
+                                              isVisible: true,
+                                              labelPosition: ChartDataLabelPosition.outside,
+                                              textStyle: TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+                                            ),
+                                            dataLabelMapper: (data, _) => '${data.label}: ${data.value.toInt()}',
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 4,
+                            child: Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              elevation: 1.5,
+                              shadowColor: Colors.black12,
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Total Revenue Generated',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    SizedBox(
+                                      height: 360,
+                                      child: SfCartesianChart(
+                                        enableAxisAnimation: false,
+                                        primaryXAxis: CategoryAxis(
+                                          labelRotation: 45,
+                                          majorGridLines: const MajorGridLines(width: 0),
+                                        ),
+                                        primaryYAxis: NumericAxis(
+                                          title: AxisTitle(
+                                            text: 'Revenue (₹)',
+                                            textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                                          ),
+                                          numberFormat: NumberFormat.compact(),
+                                          axisLine: const AxisLine(width: 0),
+                                        ),
+                                        tooltipBehavior: TooltipBehavior(enable: true),
+                                        series: <ColumnSeries<_ChartData, String>>[
+                                          ColumnSeries<_ChartData, String>(
+                                            animationDuration: 0,
+                                            dataSource: _getRevenueData(state.offenceData),
+                                            xValueMapper: (data, _) => data.label,
+                                            yValueMapper: (data, _) => data.value,
+                                            pointColorMapper: (data, _) => data.color,
+                                            dataLabelMapper: (data, _) => data.value > 0
+                                                ? '₹${data.value.toStringAsFixed(2)}'
+                                                : '₹0.00',
+                                            dataLabelSettings: const DataLabelSettings(
+                                              isVisible: true,
+                                              showZeroValue: true,
+                                              labelPosition: ChartDataLabelPosition.outside,
+                                              textStyle: TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
-              ],
-              const SizedBox(height: 24),
+              ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  static Widget _buildFilterField(BuildContext context, String hint) {
-    return TextFormField(
-      readOnly: true,
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: Colors.grey.shade100,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        suffixIcon: const Icon(Icons.keyboard_arrow_down),
       ),
     );
   }
@@ -535,27 +617,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     required List<String> options,
     required ValueChanged<String?> onChanged,
   }) {
+    final String? safeValue = (value != null && options.contains(value))
+        ? value
+        : (options.isNotEmpty ? options.first : null);
+
     return DropdownButtonFormField<String>(
+      key: ValueKey(safeValue),
       isExpanded: true,
       isDense: true,
-      initialValue: value,
+      initialValue: safeValue,
       hint: Text(hint),
       decoration: InputDecoration(
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
+          horizontal: 12,
+          vertical: 10,
         ),
         filled: true,
-        fillColor: Colors.grey.shade100,
+        fillColor: const Color(0xFFF3F6F6),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
         ),
       ),
       items: options
           .map(
             (option) =>
-                DropdownMenuItem<String>(value: option, child: Text(option)),
+                DropdownMenuItem<String>(value: option, child: Text(option, style: const TextStyle(fontSize: 13))),
           )
           .toList(),
       onChanged: onChanged,
@@ -572,65 +659,230 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Container(
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
       ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
         children: [
-          Icon(icon, color: Colors.white, size: 28),
-          const SizedBox(height: 16),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
               color: Colors.white,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Icon(
+              icon,
+              color: Colors.black87,
+              size: 28,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(title, style: const TextStyle(color: Colors.white70)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    height: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
+  String _getMetricValue(Map<String, dynamic>? offenceData, String key, String defaultValue) {
+    if (offenceData == null || offenceData.isEmpty) {
+      return defaultValue;
+    }
+    return (offenceData[key] ?? defaultValue).toString();
+  }
+
+  int _getTotalVehicles(Map<String, dynamic>? offenceData) {
+    if (offenceData == null || offenceData.isEmpty) {
+      return 0;
+    }
+    if (offenceData.containsKey('totalVehicles')) {
+      return (offenceData['totalVehicles'] as num? ?? 0).toInt();
+    }
+    final reg = offenceData['REGISTRATION_CERTIFICATE'] as Map<String, dynamic>?;
+    final found = (reg?['certificateFound'] as num? ?? 0).toInt();
+    final expired = (reg?['certificateExpired'] as num? ?? 0).toInt();
+    return found + expired;
+  }
+
+  List<_SummaryMetric> _getSummaryMetrics(Map<String, dynamic>? offenceData) {
+    if (offenceData == null || offenceData.isEmpty) {
+      return _summaryMetrics;
+    }
+    
+    _SummaryMetric parseCertificate(String title, Map<String, dynamic>? cert) {
+      final found = (cert?['certificateFound'] as num? ?? 0).toInt();
+      final expired = (cert?['certificateExpired'] as num? ?? 0).toInt();
+      final notFound = (cert?['certificateNotFound'] as num? ?? 0).toInt();
+      return _SummaryMetric(title, found, expired, notFound);
+    }
+
+    return [
+      parseCertificate('Fitness', offenceData['FITNESS_CERTIFICATE'] as Map<String, dynamic>?),
+      parseCertificate('Permit', offenceData['PERMITTED_CERTIFICATE'] as Map<String, dynamic>?),
+      parseCertificate('Road Tax', offenceData['ROAD_TAX_CERTIFICATE'] as Map<String, dynamic>?),
+      parseCertificate('Insurance', offenceData['INSURANCE_CERTIFICATE'] as Map<String, dynamic>?),
+      parseCertificate('PUC', offenceData['PUC_CERTIFICATE'] as Map<String, dynamic>?),
+    ];
+  }
+
+  List<_ChartData> _getVehicleDistributionData(Map<String, dynamic>? offenceData) {
+    if (offenceData == null || offenceData.isEmpty) {
+      return _vehicleDistributionData;
+    }
+    
+    int getExpired(Map<String, dynamic>? cert) {
+      return (cert?['certificateExpired'] as num? ?? 0).toInt();
+    }
+    
+    final fitness = getExpired(offenceData['FITNESS_CERTIFICATE'] as Map<String, dynamic>?);
+    final insurance = getExpired(offenceData['INSURANCE_CERTIFICATE'] as Map<String, dynamic>?);
+    final roadTax = getExpired(offenceData['ROAD_TAX_CERTIFICATE'] as Map<String, dynamic>?);
+    final permit = getExpired(offenceData['PERMITTED_CERTIFICATE'] as Map<String, dynamic>?);
+    final puc = getExpired(offenceData['PUC_CERTIFICATE'] as Map<String, dynamic>?);
+    final registration = getExpired(offenceData['REGISTRATION_CERTIFICATE'] as Map<String, dynamic>?);
+    final missingData = (offenceData['dataNotFound'] as num? ?? 0).toInt();
+    final allClear = (offenceData['allClear'] as num? ?? 0).toInt();
+
+    return [
+      _ChartData('Puc', puc, const Color(0xFF5CA0F2)),
+      _ChartData('Insurance', insurance, const Color(0xFF32353A)),
+      _ChartData('Permit', permit, const Color(0xFFE28B5C)),
+      _ChartData('Registration', registration, const Color(0xFF90C25B)),
+      _ChartData('All Clear', allClear, const Color(0xFF2FA85C)),
+      _ChartData('Fitness', fitness, const Color(0xFFD64D81)),
+      _ChartData('Road Tax', roadTax, const Color(0xFFC4B847)),
+      _ChartData('Missing Data', missingData, const Color(0xFFE8D05C)),
+    ];
+  }
+
+  List<_ChartData> _getRegistrationData(Map<String, dynamic>? offenceData) {
+    if (offenceData == null || offenceData.isEmpty) {
+      return [
+        _ChartData('Compliant', 15016, const Color(0xFF81D8B7)),
+        _ChartData('Non-Compliant', 192, const Color(0xFFE289A3)),
+        _ChartData('Registration Missing Data', 0, const Color(0xFFE5D57A)),
+      ];
+    }
+    final reg = offenceData['REGISTRATION_CERTIFICATE'] as Map<String, dynamic>?;
+    final found = (reg?['certificateFound'] as num? ?? 0).toInt();
+    final expired = (reg?['certificateExpired'] as num? ?? 0).toInt();
+    final notFound = (reg?['certificateNotFound'] as num? ?? 0).toInt();
+    return [
+      _ChartData('Compliant', found, const Color(0xFF81D8B7)),
+      _ChartData('Non-Compliant', expired, const Color(0xFFE289A3)),
+      _ChartData('Registration Missing Data', notFound, const Color(0xFFE5D57A)),
+    ];
+  }
+
+  List<_ChartData> _getRevenueData(Map<String, dynamic>? offenceData) {
+    final monthlyRevenue = offenceData?['monthlyRevenue'] as Map<String, dynamic>?;
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final colors = [
+      const Color(0xFF7A7BF2),
+      const Color(0xFF7A7BF2),
+      const Color(0xFF7A7BF2),
+      const Color(0xFF7A7BF2),
+      const Color(0xFF7A7BF2),
+      const Color(0xFFED5C7D),
+      const Color(0xFF7A7BF2),
+      const Color(0xFF7A7BF2),
+      const Color(0xFF7A7BF2),
+      const Color(0xFF7A7BF2),
+      const Color(0xFF7A7BF2),
+      const Color(0xFF7A7BF2),
+    ];
+    if (monthlyRevenue == null || monthlyRevenue.isEmpty) {
+      return List.generate(12, (index) {
+        final m = months[index];
+        double val = 0.0;
+        if (m == 'May') val = 280526074.0;
+        if (m == 'Jun') val = 270000000.0;
+        return _ChartData(m, val, colors[index]);
+      });
+    }
+    return List.generate(12, (index) {
+      final m = months[index];
+      final val = (monthlyRevenue[m] as num? ?? 0.0).toDouble();
+      return _ChartData(m, val, colors[index]);
+    });
+  }
+
   Widget _buildComplianceCard(_SummaryMetric metric) {
     return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      elevation: 1.5,
+      shadowColor: Colors.black12,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               metric.title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 260,
+            const SizedBox(height: 8),
+            Expanded(
               child: SfCircularChart(
                 legend: Legend(
                   isVisible: true,
                   overflowMode: LegendItemOverflowMode.wrap,
                   position: LegendPosition.bottom,
+                  textStyle: const TextStyle(fontSize: 9),
+                  itemPadding: 4,
                 ),
                 series: <DoughnutSeries<_ChartData, String>>[
                   DoughnutSeries<_ChartData, String>(
                     animationDuration: 0,
                     dataSource: [
-                      _ChartData('Compliant', metric.compliant, Colors.green),
-                      _ChartData(
-                        'Non-Compliant',
-                        metric.nonCompliant,
-                        Colors.pink,
-                      ),
-                      _ChartData('Missing Data', metric.missing, Colors.yellow),
+                      _ChartData('Compliant', metric.compliant, const Color(0xFF81D8B7)),
+                      _ChartData('Non-Compliant', metric.nonCompliant, const Color(0xFFE289A3)),
+                      _ChartData('${metric.title} Missing Data', metric.missing, const Color(0xFFE5D57A)),
                     ],
                     xValueMapper: (data, _) => data.label,
                     yValueMapper: (data, _) => data.value,
                     pointColorMapper: (data, _) => data.color,
-                    dataLabelSettings: const DataLabelSettings(isVisible: true),
+                    innerRadius: '65%',
+                    dataLabelSettings: const DataLabelSettings(
+                      isVisible: true,
+                      labelPosition: ChartDataLabelPosition.outside,
+                      connectorLineSettings: ConnectorLineSettings(
+                        type: ConnectorType.curve,
+                        length: '10%',
+                      ),
+                      textStyle: TextStyle(
+                        fontSize: 9, 
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
                   ),
                 ],
               ),
