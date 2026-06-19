@@ -102,6 +102,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(dashboardNotifierProvider);
     final notifier = ref.watch(dashboardNotifierProvider.notifier);
+    
+    ref.listen<DashboardState>(dashboardNotifierProvider, (previous, next) {
+      if (next.error != null && next.error != previous?.error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${next.error}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    });
+
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 900;
     final isMobile = !isDesktop;
@@ -160,20 +172,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       hint: _districtHint,
                       value: _selectedDistrict,
                       options: state.districts,
-                      onChanged: (value) => setState(() => _selectedDistrict = value),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedDistrict = value;
+                          _selectedZone = 'Select All Zone';
+                          _selectedCamera = 'Select All Camera';
+                        });
+                        if (value != null && value != 'Select All District') {
+                          ref.read(dashboardNotifierProvider.notifier).fetchZonesForDistrict(value);
+                        } else {
+                          ref.read(dashboardNotifierProvider.notifier).resetZones();
+                        }
+                        ref.read(dashboardNotifierProvider.notifier).resetCameras();
+                      },
                     );
 
                     final zoneDropdown = _buildDropdownField(
                       hint: _zoneHint,
                       value: _selectedZone,
-                      options: const ['Select All Zone'],
-                      onChanged: (value) => setState(() => _selectedZone = value),
+                      options: state.zones,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedZone = value;
+                          _selectedCamera = 'Select All Camera';
+                        });
+                        if (value != null && value != 'Select All Zone') {
+                          ref.read(dashboardNotifierProvider.notifier).fetchCamerasForZone(value);
+                        } else {
+                          ref.read(dashboardNotifierProvider.notifier).resetCameras();
+                        }
+                      },
                     );
 
                     final cameraDropdown = _buildDropdownField(
                       hint: _cameraHint,
                       value: _selectedCamera,
-                      options: const ['Select All Camera'],
+                      options: state.cameras,
                       onChanged: (value) => setState(() => _selectedCamera = value),
                     );
 
@@ -185,10 +219,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     );
 
                     final submitButton = OutlinedButton(
-                      onPressed: () => notifier.fetchDashboard(
-                        district: _selectedDistrict,
-                        timeRange: _selectedTimeRange,
-                      ),
+                      onPressed: () {
+                        final cameraID = state.cameraLocationToId[_selectedCamera];
+                        notifier.fetchDashboard(
+                          district: _selectedDistrict,
+                          zone: _selectedZone,
+                          camera: cameraID,
+                          timeRange: _selectedTimeRange,
+                        );
+                      },
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Color(0xFF0F5D55), width: 1.0),
                         shape: RoundedRectangleBorder(
@@ -632,8 +671,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ? value
         : (options.isNotEmpty ? options.first : null);
 
+    final keyString = '${hint}_${options.length}_$safeValue';
     return DropdownButtonFormField<String>(
-      key: ValueKey(safeValue),
+      key: ValueKey(keyString),
       isExpanded: true,
       isDense: true,
       initialValue: safeValue,
