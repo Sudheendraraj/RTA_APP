@@ -25,6 +25,8 @@ class _DynamicDashboardScreenState
   final Map<String, String?> _selectedFilters = {};
   final Map<String, List<String>> _selectedMultiFilters = {};
 
+  final ValueNotifier<bool> _isAtBottomNotifier = ValueNotifier<bool>(false);
+
   @override
   void initState() {
     super.initState();
@@ -35,12 +37,16 @@ class _DynamicDashboardScreenState
   void dispose() {
     _scrollController.removeListener(_onScrollChanged);
     _scrollController.dispose();
+    _isAtBottomNotifier.dispose();
     super.dispose();
   }
 
   void _onScrollChanged() {
     if (!mounted) return;
-    setState(() {});
+    final currentlyAtBottom = _isAtBottom;
+    if (_isAtBottomNotifier.value != currentlyAtBottom) {
+      _isAtBottomNotifier.value = currentlyAtBottom;
+    }
   }
 
   bool get _isAtBottom {
@@ -53,7 +59,7 @@ class _DynamicDashboardScreenState
   Future<void> _toggleScroll() async {
     if (!_scrollController.hasClients) return;
 
-    final target = _isAtBottom
+    final target = _isAtBottomNotifier.value
         ? 0.0
         : _scrollController.position.maxScrollExtent;
     await _scrollController.animateTo(
@@ -85,12 +91,17 @@ class _DynamicDashboardScreenState
           final isMobile = screenWidth < 600;
 
           return Scaffold(
-            floatingActionButton: FloatingActionButton.extended(
-              onPressed: _toggleScroll,
-              icon: Icon(
-                _isAtBottom ? Icons.arrow_upward : Icons.arrow_downward,
-              ),
-              label: Text(_isAtBottom ? 'Scroll Top' : 'Scroll Down'),
+            floatingActionButton: ValueListenableBuilder<bool>(
+              valueListenable: _isAtBottomNotifier,
+              builder: (context, isAtBottom, child) {
+                return FloatingActionButton.extended(
+                  onPressed: _toggleScroll,
+                  icon: Icon(
+                    isAtBottom ? Icons.arrow_upward : Icons.arrow_downward,
+                  ),
+                  label: Text(isAtBottom ? 'Scroll Top' : 'Scroll Down'),
+                );
+              },
             ),
             body: LoadingOverlay(
               isLoading: state.isLoading,
@@ -412,13 +423,7 @@ class _DynamicDashboardScreenState
     double screenWidth,
     bool isMobile,
   ) {
-<<<<<<< HEAD
-    final chartHeight = isMobile
-        ? math.max(300, screenWidth * 0.64).toDouble()
-        : 360.0;
-=======
     final chartHeight = isMobile ? math.max(300.0, screenWidth * 0.64) : 360.0;
->>>>>>> 3d06e800406bab33b55a0c80e9cc4808efec4301
     final cardPadding = isMobile ? 14.0 : 20.0;
     final titleStyle = TextStyle(
       fontSize: isMobile ? 16 : 18,
@@ -460,13 +465,8 @@ class _DynamicDashboardScreenState
             isVisible: true,
             overflowMode: LegendItemOverflowMode.wrap,
             position: LegendPosition.bottom,
-<<<<<<< HEAD
             iconHeight: isMobile ? 12.0 : 16.0,
             iconWidth: isMobile ? 12.0 : 16.0,
-=======
-            iconHeight: isMobile ? 12 : 16,
-            iconWidth: isMobile ? 12 : 16,
->>>>>>> 3d06e800406bab33b55a0c80e9cc4808efec4301
             itemPadding: 8.0,
             textStyle: TextStyle(fontSize: isMobile ? 11 : 12),
           ),

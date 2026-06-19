@@ -7,25 +7,29 @@ class DashboardRepository {
   final ApiClient _apiClient;
 
   Future<KpiSummary> fetchKpis() async {
-    final response = await _apiClient.get<Map<String, dynamic>>('/dashboard');
-    final kpis = response.data!['kpis'] as Map<String, dynamic>;
-    return KpiSummary.fromJson({
-      'totalVehiclesToday': kpis['today'],
-      'totalVehiclesWeek': kpis['week'],
-      'totalVehiclesMonth': kpis['month'],
-      'blacklistedVehicles': kpis['blacklisted'],
-      'violationsDetected': kpis['violations'],
-      'activeCameras': kpis['activeCameras'],
-      'offlineCameras': kpis['offlineCameras'],
-      'totalCheckposts': kpis['checkposts'],
-    });
+    // Mocking response to avoid calling the removed /dashboard API
+    return const KpiSummary(
+      totalVehiclesToday: 1205,
+      totalVehiclesWeek: 8540,
+      totalVehiclesMonth: 34120,
+      blacklistedVehicles: 45,
+      violationsDetected: 112,
+      activeCameras: 32,
+      offlineCameras: 2,
+      totalCheckposts: 15,
+    );
   }
 
   Future<List<AnalyticsSeries>> fetchHourlyTraffic() async {
-    final response = await _apiClient.get<List<dynamic>>('/analytics');
-    return response.data!
-        .map((item) => AnalyticsSeries.fromJson(item as Map<String, dynamic>))
-        .toList();
+    // Mocking response to avoid calling the removed /analytics API
+    return const [
+      AnalyticsSeries(label: '00:00', value: 120),
+      AnalyticsSeries(label: '04:00', value: 80),
+      AnalyticsSeries(label: '08:00', value: 350),
+      AnalyticsSeries(label: '12:00', value: 500),
+      AnalyticsSeries(label: '16:00', value: 450),
+      AnalyticsSeries(label: '20:00', value: 300),
+    ];
   }
 
   Future<List<String>> fetchDistricts() async {

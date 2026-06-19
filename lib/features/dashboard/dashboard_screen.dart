@@ -54,6 +54,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     _ChartData('Missing Data', 10910, Colors.amberAccent),
   ];
 
+  final ValueNotifier<bool> _isAtBottomNotifier = ValueNotifier<bool>(false);
+
   bool get _isAtBottom {
     return _scrollController.hasClients &&
         _scrollController.offset >=
@@ -71,18 +73,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void dispose() {
     _scrollController.removeListener(_onScrollChanged);
     _scrollController.dispose();
+    _isAtBottomNotifier.dispose();
     super.dispose();
   }
 
   void _onScrollChanged() {
     if (!mounted) return;
-    setState(() {});
+    final currentlyAtBottom = _isAtBottom;
+    if (_isAtBottomNotifier.value != currentlyAtBottom) {
+      _isAtBottomNotifier.value = currentlyAtBottom;
+    }
   }
 
   Future<void> _toggleScroll() async {
     if (!_scrollController.hasClients) return;
 
-    final target = _isAtBottom
+    final target = _isAtBottomNotifier.value
         ? 0.0
         : _scrollController.position.maxScrollExtent;
     await _scrollController.animateTo(
@@ -105,12 +111,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F6F6),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _toggleScroll,
-        backgroundColor: const Color(0xFF81D8B7),
-        foregroundColor: const Color(0xFF0F5D55),
-        icon: Icon(_isAtBottom ? Icons.arrow_upward : Icons.arrow_downward),
-        label: Text(_isAtBottom ? 'Scroll Top' : 'Scroll Down'),
+      floatingActionButton: ValueListenableBuilder<bool>(
+        valueListenable: _isAtBottomNotifier,
+        builder: (context, isAtBottom, child) {
+          return FloatingActionButton.extended(
+            onPressed: _toggleScroll,
+            backgroundColor: const Color(0xFF81D8B7),
+            foregroundColor: const Color(0xFF0F5D55),
+            icon: Icon(isAtBottom ? Icons.arrow_upward : Icons.arrow_downward),
+            label: Text(isAtBottom ? 'Scroll Top' : 'Scroll Down'),
+          );
+        },
       ),
       body: LoadingOverlay(
         isLoading: state.isLoading,
@@ -305,7 +316,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       crossAxisSpacing: 16,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      childAspectRatio: 0.75,
+                      childAspectRatio: isDesktop ? 1.25 : 1.05,
                       children: _getSummaryMetrics(state.offenceData)
                           .map((metric) => _buildComplianceCard(metric))
                           .toList(),
@@ -333,13 +344,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             ),
                             const SizedBox(height: 16),
                             SizedBox(
-                              height: 250,
+                              height: 220,
                               child: SfCircularChart(
                                 legend: Legend(
                                   isVisible: true,
                                   overflowMode: LegendItemOverflowMode.wrap,
                                   position: LegendPosition.bottom,
-                                  textStyle: const TextStyle(fontSize: 11),
+                                  textStyle: const TextStyle(fontSize: 10),
                                 ),
                                 series: <DoughnutSeries<_ChartData, String>>[
                                   DoughnutSeries<_ChartData, String>(
@@ -849,13 +860,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Expanded(
+            SizedBox(
+              height: 220,
               child: SfCircularChart(
                 legend: Legend(
                   isVisible: true,
                   overflowMode: LegendItemOverflowMode.wrap,
                   position: LegendPosition.bottom,
-                  textStyle: const TextStyle(fontSize: 9),
+                  textStyle: const TextStyle(fontSize: 10),
                   itemPadding: 4,
                 ),
                 series: <DoughnutSeries<_ChartData, String>>[
