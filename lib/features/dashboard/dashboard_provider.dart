@@ -11,11 +11,13 @@ class MissingCertificatesParams {
   final String? district;
   final String? zone;
   final String? camera;
+  final String? timeRange;
 
   const MissingCertificatesParams({
     this.district,
     this.zone,
     this.camera,
+    this.timeRange,
   });
 
   @override
@@ -25,10 +27,12 @@ class MissingCertificatesParams {
           runtimeType == other.runtimeType &&
           district == other.district &&
           zone == other.zone &&
-          camera == other.camera;
+          camera == other.camera &&
+          timeRange == other.timeRange;
 
   @override
-  int get hashCode => district.hashCode ^ zone.hashCode ^ camera.hashCode;
+  int get hashCode =>
+      district.hashCode ^ zone.hashCode ^ camera.hashCode ^ timeRange.hashCode;
 }
 
 final missingCertificatesProvider = FutureProvider.family<MissingCertificateModel, MissingCertificatesParams>((ref, params) async {
@@ -51,6 +55,7 @@ final missingCertificatesProvider = FutureProvider.family<MissingCertificateMode
       district: params.district,
       zone: params.zone,
       camera: params.camera,
+      timeRange: params.timeRange,
     );
   } on TimeoutException {
     throw 'Connection timed out. Please check your internet and try again.';

@@ -8,7 +8,6 @@ import '../../core/widgets/loading_overlay.dart';
 import '../../core/widgets/responsive_scaffold.dart';
 import 'dashboard_notifier.dart';
 import 'dashboard_provider.dart';
-import 'models/missing_certificate_model.dart';
 
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -37,7 +36,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String? _selectedDistrict = 'Select All District';
   String? _selectedZone = 'Select All Zone';
   String? _selectedCamera = 'Select All Camera';
-  String? _selectedTimeRange = _timeRangeOptions.first;
+  String? _selectedTimeRange = 'Today';
 
   static final _summaryMetrics = [
     _SummaryMetric('Fitness', 3537, 215, 10910),
@@ -47,16 +46,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     _SummaryMetric('PUC', 4542, 1851, 1815),
   ];
 
-  static final _vehicleDistributionData = [
-    _ChartData('Fitness', 215, Colors.lightGreen),
-    _ChartData('Insurance', 4061, Colors.grey.shade800),
-    _ChartData('Road Tax', 852, Colors.green),
-    _ChartData('Permit', 52, Colors.blueAccent),
-    _ChartData('PUC', 1851, Colors.purpleAccent),
-    _ChartData('All Clear', 3740, Colors.green.shade300),
-    _ChartData('Registration', 192, Colors.yellow.shade700),
-    _ChartData('Missing Data', 10910, Colors.amberAccent),
-  ];
+
 
   final ValueNotifier<bool> _isAtBottomNotifier = ValueNotifier<bool>(false);
 
@@ -80,7 +70,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     });
 
     // Auto Refresh every 5 minutes
-    _autoRefreshTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
+    _autoRefreshTimer = Timer.periodic(const Duration(minutes: 2), (timer) {
       _refreshMissingCertificates();
     });
   }
@@ -102,10 +92,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       district: _selectedDistrict,
       zone: _selectedZone,
       camera: cameraID,
+      timeRange: _selectedTimeRange,
     );
     ref.invalidate(missingCertificatesProvider(params));
   }
-
 
   void _onScrollChanged() {
     if (!mounted) return;
@@ -156,6 +146,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       district: _selectedDistrict,
       zone: _selectedZone,
       camera: cameraID,
+      timeRange: _selectedTimeRange,
     );
     final missingCertificatesAsync = ref.watch(missingCertificatesProvider(params));
 
@@ -386,90 +377,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         _buildKeyMetricCard(
                           context,
                           title: 'e-Challan',
-                          value: _getMetricValue(state.offenceData, 'eChallan', '2'),
+                          value: state.eChallan,
                           icon: Icons.receipt_long,
                           backgroundColor: const Color(0xFF907BE5),
                         ),
                         _buildKeyMetricCard(
                           context,
                           title: 'Manual Challan',
-                          value: _getMetricValue(state.offenceData, 'manualChallan', '2'),
+                          value: state.manualChallan,
                           icon: Icons.payments,
                           backgroundColor: const Color(0xFF33C0E5),
                         ),
                         _buildKeyMetricCard(
                           context,
                           title: 'Vehicles Seized',
-                          value: _getMetricValue(state.offenceData, 'seizedVehicles', '0'),
+                          value: state.seizedVehicles,
                           icon: Icons.block,
                           backgroundColor: const Color(0xFFFFA63E),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 28),
-                    
-                    // -------------------------------------------------------------
-                    // Missing Certificates Section
-                    // -------------------------------------------------------------
-                    const Text(
-                      'Missing Certificates Report (Today)',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0F5D55),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    missingCertificatesAsync.when(
-                      data: (data) => _buildMissingCertificatesGrid(data, isDesktop),
-                      loading: () => const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(32.0),
-                          child: CircularProgressIndicator(color: Color(0xFF0F5D55)),
-                        ),
-                      ),
-                      error: (err, stack) => Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.red.shade200),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.error_outline, color: Colors.red.shade700),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Error Loading Certificates',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red.shade900,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              err.toString(),
-                              style: TextStyle(color: Colors.red.shade700),
-                            ),
-                            const SizedBox(height: 12),
-                            ElevatedButton.icon(
-                              onPressed: _refreshMissingCertificates,
-                              icon: const Icon(Icons.refresh, size: 16),
-                              label: const Text('Retry'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF0F5D55),
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
                     const SizedBox(height: 28),
                     if (state.offenceTypes.isNotEmpty)
@@ -593,39 +519,68 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Vehicle Distribution',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Vehicle Distribution',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  _buildChartMenu(context, 'Vehicle Distribution'),
+                                ],
                               ),
                               const SizedBox(height: 16),
                               SizedBox(
                                 height: 300,
-                                child: SfCircularChart(
-                                  legend: Legend(
-                                    isVisible: true,
-                                    overflowMode: LegendItemOverflowMode.wrap,
-                                    position: LegendPosition.bottom,
-                                    textStyle: const TextStyle(fontSize: 10),
-                                  ),
-                                  series: <DoughnutSeries<_ChartData, String>>[
-                                    DoughnutSeries<_ChartData, String>(
-                                      animationDuration: 0,
-                                      dataSource: _getVehicleDistributionData(state.offenceData),
-                                      xValueMapper: (data, _) => data.label,
-                                      yValueMapper: (data, _) => data.value,
-                                      pointColorMapper: (data, _) => data.color,
-                                      innerRadius: '60%',
-                                      dataLabelSettings: const DataLabelSettings(
+                                child: missingCertificatesAsync.when(
+                                  data: (data) {
+                                    final chartData = [
+                                      _ChartData('Fitness', data.fitnessCertificateNotFound, const Color(0xFF5CA0F2)),
+                                      _ChartData('Insurance', data.insuranceCertificateNotFound, const Color(0xFF32353A)),
+                                      _ChartData('Road Tax', data.roadTaxCertificateNotFound, const Color(0xFF90C25B)),
+                                      _ChartData('Permit', data.permitCertificateNotFound, const Color(0xFFE28B5C)),
+                                      _ChartData('Puc', data.pucCertificateNotFound, const Color(0xFF7A7BF2)),
+                                      _ChartData('Registration', data.registrationCertificateNotFound, const Color(0xFFD64D81)),
+                                      _ChartData('All Clear', data.allClearNotFound, const Color(0xFF2FA85C)),
+                                      _ChartData('Missing Data', data.weightCertificateNotFound, const Color(0xFFE8D05C)),
+                                    ];
+                                    return SfCircularChart(
+                                      legend: Legend(
                                         isVisible: true,
-                                        labelPosition: ChartDataLabelPosition.outside,
-                                        textStyle: TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+                                        overflowMode: LegendItemOverflowMode.wrap,
+                                        position: LegendPosition.bottom,
+                                        textStyle: const TextStyle(fontSize: 10),
                                       ),
-                                      dataLabelMapper: (data, _) => '${data.label}: ${data.value.toInt()}',
+                                      series: <DoughnutSeries<_ChartData, String>>[
+                                        DoughnutSeries<_ChartData, String>(
+                                          animationDuration: 0,
+                                          dataSource: chartData,
+                                          xValueMapper: (data, _) => data.label,
+                                          yValueMapper: (data, _) => data.value,
+                                          pointColorMapper: (data, _) => data.color,
+                                          innerRadius: '60%',
+                                          dataLabelSettings: const DataLabelSettings(
+                                            isVisible: true,
+                                            labelPosition: ChartDataLabelPosition.outside,
+                                            textStyle: TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+                                          ),
+                                          dataLabelMapper: (data, _) => '${data.label}: ${data.value.toInt()}',
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                  loading: () => const Center(
+                                    child: CircularProgressIndicator(color: Color(0xFF0F5D55)),
+                                  ),
+                                  error: (err, stack) => Center(
+                                    child: Text(
+                                      'Error loading chart: $err',
+                                      style: const TextStyle(color: Colors.red, fontSize: 12),
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -644,12 +599,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Total Revenue Generated',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Total Revenue Generated',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  _buildChartMenu(context, 'Total Revenue Generated'),
+                                ],
                               ),
                               const SizedBox(height: 16),
                               SizedBox(
@@ -669,11 +630,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                     axisLine: const AxisLine(width: 0),
                                   ),
                                   tooltipBehavior: TooltipBehavior(enable: true),
-                                  series: <ColumnSeries<_ChartData, String>>[
-                                    ColumnSeries<_ChartData, String>(
-                                      animationDuration: 0,
-                                      dataSource: _getRevenueData(state.offenceData),
-                                      xValueMapper: (data, _) => data.label,
+                                   series: <ColumnSeries<_ChartData, String>>[
+                                     ColumnSeries<_ChartData, String>(
+                                       animationDuration: 0,
+                                       dataSource: _getRevenueData(state.monthlyRevenue),
+                                       xValueMapper: (data, _) => data.label,
                                       yValueMapper: (data, _) => data.value,
                                       pointColorMapper: (data, _) => data.color,
                                       dataLabelMapper: (data, _) => data.value > 0
@@ -710,39 +671,68 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Vehicle Distribution',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text(
+                                          'Vehicle Distribution',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        _buildChartMenu(context, 'Vehicle Distribution'),
+                                      ],
                                     ),
                                     const SizedBox(height: 16),
                                     SizedBox(
                                       height: 360,
-                                      child: SfCircularChart(
-                                        legend: Legend(
-                                          isVisible: true,
-                                          overflowMode: LegendItemOverflowMode.wrap,
-                                          position: LegendPosition.bottom,
-                                          textStyle: const TextStyle(fontSize: 10),
-                                        ),
-                                        series: <DoughnutSeries<_ChartData, String>>[
-                                          DoughnutSeries<_ChartData, String>(
-                                            animationDuration: 0,
-                                            dataSource: _getVehicleDistributionData(state.offenceData),
-                                            xValueMapper: (data, _) => data.label,
-                                            yValueMapper: (data, _) => data.value,
-                                            pointColorMapper: (data, _) => data.color,
-                                            innerRadius: '60%',
-                                            dataLabelSettings: const DataLabelSettings(
+                                      child: missingCertificatesAsync.when(
+                                        data: (data) {
+                                          final chartData = [
+                                            _ChartData('Fitness', data.fitnessCertificateNotFound, const Color(0xFF5CA0F2)),
+                                            _ChartData('Insurance', data.insuranceCertificateNotFound, const Color(0xFF32353A)),
+                                            _ChartData('Road Tax', data.roadTaxCertificateNotFound, const Color(0xFF90C25B)),
+                                            _ChartData('Permit', data.permitCertificateNotFound, const Color(0xFFE28B5C)),
+                                            _ChartData('Puc', data.pucCertificateNotFound, const Color(0xFF7A7BF2)),
+                                            _ChartData('Registration', data.registrationCertificateNotFound, const Color(0xFFD64D81)),
+                                            _ChartData('All Clear', data.allClearNotFound, const Color(0xFF2FA85C)),
+                                            _ChartData('Missing Data', data.weightCertificateNotFound, const Color(0xFFE8D05C)),
+                                          ];
+                                          return SfCircularChart(
+                                            legend: Legend(
                                               isVisible: true,
-                                              labelPosition: ChartDataLabelPosition.outside,
-                                              textStyle: TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+                                              overflowMode: LegendItemOverflowMode.wrap,
+                                              position: LegendPosition.bottom,
+                                              textStyle: const TextStyle(fontSize: 10),
                                             ),
-                                            dataLabelMapper: (data, _) => '${data.label}: ${data.value.toInt()}',
+                                            series: <DoughnutSeries<_ChartData, String>>[
+                                              DoughnutSeries<_ChartData, String>(
+                                                animationDuration: 0,
+                                                dataSource: chartData,
+                                                xValueMapper: (data, _) => data.label,
+                                                yValueMapper: (data, _) => data.value,
+                                                pointColorMapper: (data, _) => data.color,
+                                                innerRadius: '60%',
+                                                dataLabelSettings: const DataLabelSettings(
+                                                  isVisible: true,
+                                                  labelPosition: ChartDataLabelPosition.outside,
+                                                  textStyle: TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+                                                ),
+                                                dataLabelMapper: (data, _) => '${data.label}: ${data.value.toInt()}',
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                        loading: () => const Center(
+                                          child: CircularProgressIndicator(color: Color(0xFF0F5D55)),
+                                        ),
+                                        error: (err, stack) => Center(
+                                          child: Text(
+                                            'Error loading chart: $err',
+                                            style: const TextStyle(color: Colors.red, fontSize: 12),
                                           ),
-                                        ],
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -764,12 +754,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Total Revenue Generated',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text(
+                                          'Total Revenue Generated',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        _buildChartMenu(context, 'Total Revenue Generated'),
+                                      ],
                                     ),
                                     const SizedBox(height: 16),
                                     SizedBox(
@@ -789,11 +785,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                           axisLine: const AxisLine(width: 0),
                                         ),
                                         tooltipBehavior: TooltipBehavior(enable: true),
-                                        series: <ColumnSeries<_ChartData, String>>[
-                                          ColumnSeries<_ChartData, String>(
-                                            animationDuration: 0,
-                                            dataSource: _getRevenueData(state.offenceData),
-                                            xValueMapper: (data, _) => data.label,
+                                         series: <ColumnSeries<_ChartData, String>>[
+                                           ColumnSeries<_ChartData, String>(
+                                             animationDuration: 0,
+                                             dataSource: _getRevenueData(state.monthlyRevenue),
+                                             xValueMapper: (data, _) => data.label,
                                             yValueMapper: (data, _) => data.value,
                                             pointColorMapper: (data, _) => data.color,
                                             dataLabelMapper: (data, _) => data.value > 0
@@ -927,12 +923,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  String _getMetricValue(Map<String, dynamic>? offenceData, String key, String defaultValue) {
-    if (offenceData == null || offenceData.isEmpty) {
-      return defaultValue;
-    }
-    return (offenceData[key] ?? defaultValue).toString();
-  }
+
 
   int _getTotalVehicles(Map<String, dynamic>? offenceData) {
     if (offenceData == null || offenceData.isEmpty) {
@@ -968,35 +959,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     ];
   }
 
-  List<_ChartData> _getVehicleDistributionData(Map<String, dynamic>? offenceData) {
-    if (offenceData == null || offenceData.isEmpty) {
-      return _vehicleDistributionData;
-    }
-    
-    int getExpired(Map<String, dynamic>? cert) {
-      return (cert?['certificateExpired'] as num? ?? 0).toInt();
-    }
-    
-    final fitness = getExpired(offenceData['FITNESS_CERTIFICATE'] as Map<String, dynamic>?);
-    final insurance = getExpired(offenceData['INSURANCE_CERTIFICATE'] as Map<String, dynamic>?);
-    final roadTax = getExpired(offenceData['ROAD_TAX_CERTIFICATE'] as Map<String, dynamic>?);
-    final permit = getExpired(offenceData['PERMITTED_CERTIFICATE'] as Map<String, dynamic>?);
-    final puc = getExpired(offenceData['PUC_CERTIFICATE'] as Map<String, dynamic>?);
-    final registration = getExpired(offenceData['REGISTRATION_CERTIFICATE'] as Map<String, dynamic>?);
-    final missingData = (offenceData['dataNotFound'] as num? ?? 0).toInt();
-    final allClear = (offenceData['allClear'] as num? ?? 0).toInt();
 
-    return [
-      _ChartData('Puc', puc, const Color(0xFF5CA0F2)),
-      _ChartData('Insurance', insurance, const Color(0xFF32353A)),
-      _ChartData('Permit', permit, const Color(0xFFE28B5C)),
-      _ChartData('Registration', registration, const Color(0xFF90C25B)),
-      _ChartData('All Clear', allClear, const Color(0xFF2FA85C)),
-      _ChartData('Fitness', fitness, const Color(0xFFD64D81)),
-      _ChartData('Road Tax', roadTax, const Color(0xFFC4B847)),
-      _ChartData('Missing Data', missingData, const Color(0xFFE8D05C)),
-    ];
-  }
 
   List<_ChartData> _getRegistrationData(Map<String, dynamic>? offenceData) {
     if (offenceData == null || offenceData.isEmpty) {
@@ -1017,8 +980,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     ];
   }
 
-  List<_ChartData> _getRevenueData(Map<String, dynamic>? offenceData) {
-    final monthlyRevenue = offenceData?['monthlyRevenue'] as Map<String, dynamic>?;
+  List<_ChartData> _getRevenueData(Map<String, double> monthlyRevenue) {
     final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final colors = [
       const Color(0xFF7A7BF2),
@@ -1034,18 +996,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       const Color(0xFF7A7BF2),
       const Color(0xFF7A7BF2),
     ];
-    if (monthlyRevenue == null || monthlyRevenue.isEmpty) {
-      return List.generate(12, (index) {
-        final m = months[index];
-        double val = 0.0;
-        if (m == 'May') val = 280526074.0;
-        if (m == 'Jun') val = 270000000.0;
-        return _ChartData(m, val, colors[index]);
-      });
-    }
     return List.generate(12, (index) {
       final m = months[index];
-      final val = (monthlyRevenue[m] as num? ?? 0.0).toDouble();
+      final monthKey = (index + 1).toString();
+      final val = monthlyRevenue[monthKey] ?? 0.0;
       return _ChartData(m, val, colors[index]);
     });
   }
@@ -1112,94 +1066,47 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildMissingCertificatesGrid(MissingCertificateModel data, bool isDesktop) {
-    final format = NumberFormat.decimalPattern();
-    final items = [
-      _CertificateItem('Insurance Missing', data.insuranceCertificateNotFound, Icons.security, const Color(0xFF907BE5)),
-      _CertificateItem('Weight Missing', data.weightCertificateNotFound, Icons.monitor_weight_outlined, const Color(0xFF33C0E5)),
-      _CertificateItem('PUC Missing', data.pucCertificateNotFound, Icons.co2_outlined, const Color(0xFFFFA63E)),
-      _CertificateItem('Road Tax Missing', data.roadTaxCertificateNotFound, Icons.receipt_long, const Color(0xFFE54A88)),
-      _CertificateItem('Fitness Missing', data.fitnessCertificateNotFound, Icons.fitness_center, const Color(0xFF81D8B7)),
-      _CertificateItem('Registration Missing', data.registrationCertificateNotFound, Icons.app_registration, const Color(0xFF2FA85C)),
-      _CertificateItem('Permit Missing', data.permitCertificateNotFound, Icons.card_membership, const Color(0xFF5CA0F2)),
-      _CertificateItem('All Clear Missing', data.allClearNotFound, Icons.check_circle_outline, const Color(0xFFE28B5C)),
-    ];
-
-    final crossAxisCount = isDesktop ? 4 : 2;
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: isDesktop ? 2.0 : 1.5,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return Card(
-          elevation: 1.0,
-          margin: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-            side: BorderSide(color: Colors.grey.shade200),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: item.color.withAlpha(25),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Icon(item.icon, color: item.color, size: 20),
-                    ),
-                    Text(
-                      format.format(item.count),
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: item.count > 0 ? Colors.red.shade700 : Colors.green.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  item.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+  Widget _buildChartMenu(BuildContext context, String chartTitle) {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.menu, color: Color(0xFF666666), size: 20),
+      tooltip: 'Chart context menu',
+      onSelected: (value) {
+        _exportChart(context, chartTitle, value);
       },
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'fullscreen',
+          child: Text('View in full screen', style: TextStyle(fontSize: 12)),
+        ),
+        const PopupMenuItem(
+          value: 'png',
+          child: Text('Download PNG image', style: TextStyle(fontSize: 12)),
+        ),
+        const PopupMenuItem(
+          value: 'jpeg',
+          child: Text('Download JPEG image', style: TextStyle(fontSize: 12)),
+        ),
+        const PopupMenuItem(
+          value: 'pdf',
+          child: Text('Download PDF document', style: TextStyle(fontSize: 12)),
+        ),
+        const PopupMenuItem(
+          value: 'svg',
+          child: Text('Download SVG vector image', style: TextStyle(fontSize: 12)),
+        ),
+      ],
     );
   }
-}
 
-class _CertificateItem {
-  final String label;
-  final int count;
-  final IconData icon;
-  final Color color;
+  void _exportChart(BuildContext context, String title, String format) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Downloading $title as ${format.toUpperCase()}...'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
 
-  const _CertificateItem(this.label, this.count, this.icon, this.color);
 }
 
 

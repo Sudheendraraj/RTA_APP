@@ -61,6 +61,38 @@ class DashboardRepository {
     return [];
   }
 
+  Map<String, String>? _getDateRange(String? timeRange) {
+    if (timeRange == 'Select All Time Range') {
+      return null;
+    }
+
+    final now = DateTime.now();
+    DateTime start;
+    DateTime end = now;
+
+    if (timeRange == 'This Week') {
+      final weekday = now.weekday;
+      final monday = now.subtract(Duration(days: weekday - 1));
+      start = DateTime(monday.year, monday.month, monday.day);
+    } else if (timeRange == 'This Month') {
+      start = DateTime(now.year, now.month, 1);
+    } else if (timeRange == 'This Year') {
+      start = DateTime(now.year, 1, 1);
+    } else {
+      // 'Today' or default
+      start = DateTime(now.year, now.month, now.day);
+    }
+
+    String two(int n) => n >= 10 ? '$n' : '0$n';
+    String format(DateTime dt) =>
+        '${dt.year}-${two(dt.month)}-${two(dt.day)}T${two(dt.hour)}:${two(dt.minute)}:${two(dt.second)}';
+
+    return {
+      'startDate': format(start),
+      'endDate': format(end),
+    };
+  }
+
   Future<Map<String, dynamic>> fetchOffenceCountData({
     String? district,
     String? zone,
@@ -78,7 +110,13 @@ class DashboardRepository {
     if (camera != null && camera != 'Select All Camera') {
       body['cameraId'] = camera;
     }
-    // Note: If backend expects other fields in the body for timeRange, we can map it here.
+
+    final range = _getDateRange(timeRange);
+    if (range != null) {
+      body['startDate'] = range['startDate'];
+      body['endDate'] = range['endDate'];
+    }
+
     final response = await _apiClient.post<Map<String, dynamic>>(
       '/rta/getOffenceCountData',
       data: body,
@@ -132,16 +170,9 @@ class DashboardRepository {
     String? district,
     String? zone,
     String? camera,
+    String? timeRange,
   }) async {
-    // Use GET endpoint with date range to fetch live data. Default to
-    // start of today -> now if no explicit dates are provided by caller.
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day);
-    final queryParameters = <String, dynamic>{
-      'startDate': startOfDay.toIso8601String(),
-      'endDate': now.toIso8601String(),
-    };
-
+    final queryParameters = <String, dynamic>{};
     if (district != null && district != 'Select All District') {
       queryParameters['districtName'] = district;
     }
@@ -151,6 +182,12 @@ class DashboardRepository {
     }
     if (camera != null && camera != 'Select All Camera') {
       queryParameters['cameraId'] = camera;
+    }
+
+    final range = _getDateRange(timeRange ?? 'Today');
+    if (range != null) {
+      queryParameters['startDate'] = range['startDate'];
+      queryParameters['endDate'] = range['endDate'];
     }
 
     final response = await _apiClient.get<Map<String, dynamic>>(
@@ -174,5 +211,78 @@ class DashboardRepository {
     );
 
     return response.data ?? {};
+  }
+
+  Future<Map<String, String>> fetchChallanCounts({
+    String? district,
+    String? zone,
+    String? camera,
+    String? timeRange,
+  }) async {
+    final Map<String, dynamic> body = {};
+    if (district != null && district != 'Select All District') {
+      body['districtName'] = district;
+    }
+    if (zone != null && zone != 'Select All Zone') {
+      body['officeName'] = zone;
+      body['zone'] = zone;
+    }
+    if (camera != null && camera != 'Select All Camera') {
+      body['cameraId'] = camera;
+    }
+    final range = _getDateRange(timeRange);
+    if (range != null) {
+      body['startDate'] = range['startDate'];
+      body['endDate'] = range['endDate'];
+    }
+
+    try {
+      final response = await _apiClient.post<Map<String, dynamic>>(
+        '/rta/getChallansGroupCount',
+        data: body,
+      );
+      final list = response.data?['data'] as List<dynamic>? ?? [];
+      int raise = 0;
+      int collect = 0;
+      int seize = 0;
+      for (final item in list) {
+        if (item is Map) {
+          final type = item['challanType']?.toString();
+          final count = (item['count'] as num? ?? 0).toInt();
+          if (type == 'RAISE') raise = count;
+          if (type == 'COLLECT') collect = count;
+          if (type == 'SEIZE') seize = count;
+        }
+      }
+      return {
+        'eChallan': raise.toString(),
+        'manualChallan': collect.toString(),
+        'seizedVehicles': seize.toString(),
+      };
+    } catch (e) {
+      debugPrint('Error fetchChallanCounts: $e');
+      return {
+        'eChallan': '0',
+        'manualChallan': '0',
+        'seizedVehicles': '0',
+      };
+    }
+  }
+
+  Future<Map<String, double>> fetchMonthlyRevenue(int year) async {
+    try {
+      final response = await _apiClient.get<Map<String, dynamic>>(
+        '/budget/revenue/monthly/$year',
+      );
+      final data = response.data?['data'] as Map<String, dynamic>? ?? {};
+      final Map<String, double> revenue = {};
+      data.forEach((key, val) {
+        revenue[key] = (val as num? ?? 0.0).toDouble();
+      });
+      return revenue;
+    } catch (e) {
+      debugPrint('Error fetchMonthlyRevenue: $e');
+      return {};
+    }
   }
 }
