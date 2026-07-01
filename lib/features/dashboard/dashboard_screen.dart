@@ -3,9 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:intl/intl.dart';
 
+import 'dart:async';
 import '../../core/widgets/loading_overlay.dart';
 import '../../core/widgets/responsive_scaffold.dart';
 import 'dashboard_notifier.dart';
+import 'dashboard_provider.dart';
+import 'models/missing_certificate_model.dart';
+
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -63,19 +67,45 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 (_scrollController.position.viewportDimension / 4);
   }
 
+  Timer? _autoRefreshTimer;
+
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScrollChanged);
+    
+    // Refresh on Dashboard Open
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshMissingCertificates();
+    });
+
+    // Auto Refresh every 5 minutes
+    _autoRefreshTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
+      _refreshMissingCertificates();
+    });
   }
 
   @override
   void dispose() {
+    _autoRefreshTimer?.cancel();
     _scrollController.removeListener(_onScrollChanged);
     _scrollController.dispose();
     _isAtBottomNotifier.dispose();
     super.dispose();
   }
+
+  void _refreshMissingCertificates() {
+    if (!mounted) return;
+    final state = ref.read(dashboardNotifierProvider);
+    final cameraID = state.cameraLocationToId[_selectedCamera];
+    final params = MissingCertificatesParams(
+      district: _selectedDistrict,
+      zone: _selectedZone,
+      camera: cameraID,
+    );
+    ref.invalidate(missingCertificatesProvider(params));
+  }
+
 
   void _onScrollChanged() {
     if (!mounted) return;
@@ -121,6 +151,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final summaryColumnCount = isDesktop ? 4 : 1;
     final donutColumnCount = isDesktop ? 3 : 1;
 
+    final cameraID = state.cameraLocationToId[_selectedCamera];
+    final params = MissingCertificatesParams(
+      district: _selectedDistrict,
+      zone: _selectedZone,
+      camera: cameraID,
+    );
+    final missingCertificatesAsync = ref.watch(missingCertificatesProvider(params));
+
     return Scaffold(
       backgroundColor: const Color(0xFFF3F6F6),
       floatingActionButton: ValueListenableBuilder<bool>(
@@ -137,10 +175,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ),
       body: LoadingOverlay(
         isLoading: state.isLoading,
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: RefreshIndicator(
+          onRefresh: () async {
+            final camId = state.cameraLocationToId[_selectedCamera];
+            final p = MissingCertificatesParams(
+              district: _selectedDistrict,
+              zone: _selectedZone,
+              camera: camId,
+            );
+            ref.invalidate(missingCertificatesProvider(p));
+            await ref.read(missingCertificatesProvider(p).future);
+            await notifier.fetchDashboard(
+              district: _selectedDistrict,
+              zone: _selectedZone,
+              camera: camId,
+              timeRange: _selectedTimeRange,
+            );
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            controller: _scrollController,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+
             children: [
               // Top Horizontal Filter Bar
               Container(
@@ -317,9 +374,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         _buildKeyMetricCard(
                           context,
                           title: 'Total No.of Vehicles',
-                          value: _getTotalVehicles(state.offenceData) > 0
-                              ? _getTotalVehicles(state.offenceData).toString()
-                              : (state.kpis?.totalVehiclesMonth.toString() ?? '66306'),
+                          value: missingCertificatesAsync.maybeWhen(
+                            data: (data) => NumberFormat.decimalPattern().format(data.vehicleCount),
+                            orElse: () => _getTotalVehicles(state.offenceData) > 0
+                                ? _getTotalVehicles(state.offenceData).toString()
+                                : (state.kpis?.totalVehiclesMonth.toString() ?? '66306'),
+                          ),
                           icon: Icons.directions_car,
                           backgroundColor: const Color(0xFFE54A88),
                         ),
@@ -346,8 +406,114 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
                     
+                    // -------------------------------------------------------------
+                    // Missing Certificates Section
+                    // -------------------------------------------------------------
+                    const Text(
+                      'Missing Certificates Report (Today)',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F5D55),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    missingCertificatesAsync.when(
+                      data: (data) => _buildMissingCertificatesGrid(data, isDesktop),
+                      loading: () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: CircularProgressIndicator(color: Color(0xFF0F5D55)),
+                        ),
+                      ),
+                      error: (err, stack) => Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.error_outline, color: Colors.red.shade700),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Error Loading Certificates',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red.shade900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              err.toString(),
+                              style: TextStyle(color: Colors.red.shade700),
+                            ),
+                            const SizedBox(height: 12),
+                            ElevatedButton.icon(
+                              onPressed: _refreshMissingCertificates,
+                              icon: const Icon(Icons.refresh, size: 16),
+                              label: const Text('Retry'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0F5D55),
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    if (state.offenceTypes.isNotEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7FAFA),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFDCECEC)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Live Offence Types',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0F5D55),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: state.offenceTypes
+                                  .map(
+                                    (offence) => Chip(
+                                      label: Text(offence),
+                                      backgroundColor: const Color(0xFFE8F4F3),
+                                      side: BorderSide.none,
+                                      labelStyle: const TextStyle(
+                                        color: Color(0xFF0F5D55),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 24),
+
                     // Row/Grid of 5 Circular Charts
                     GridView.count(
                       crossAxisCount: donutColumnCount,
@@ -658,8 +824,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   static Widget _buildDropdownField({
     required String hint,
@@ -944,7 +1111,97 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ),
     );
   }
+
+  Widget _buildMissingCertificatesGrid(MissingCertificateModel data, bool isDesktop) {
+    final format = NumberFormat.decimalPattern();
+    final items = [
+      _CertificateItem('Insurance Missing', data.insuranceCertificateNotFound, Icons.security, const Color(0xFF907BE5)),
+      _CertificateItem('Weight Missing', data.weightCertificateNotFound, Icons.monitor_weight_outlined, const Color(0xFF33C0E5)),
+      _CertificateItem('PUC Missing', data.pucCertificateNotFound, Icons.co2_outlined, const Color(0xFFFFA63E)),
+      _CertificateItem('Road Tax Missing', data.roadTaxCertificateNotFound, Icons.receipt_long, const Color(0xFFE54A88)),
+      _CertificateItem('Fitness Missing', data.fitnessCertificateNotFound, Icons.fitness_center, const Color(0xFF81D8B7)),
+      _CertificateItem('Registration Missing', data.registrationCertificateNotFound, Icons.app_registration, const Color(0xFF2FA85C)),
+      _CertificateItem('Permit Missing', data.permitCertificateNotFound, Icons.card_membership, const Color(0xFF5CA0F2)),
+      _CertificateItem('All Clear Missing', data.allClearNotFound, Icons.check_circle_outline, const Color(0xFFE28B5C)),
+    ];
+
+    final crossAxisCount = isDesktop ? 4 : 2;
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: isDesktop ? 2.0 : 1.5,
+      ),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return Card(
+          elevation: 1.0,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: item.color.withAlpha(25),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(item.icon, color: item.color, size: 20),
+                    ),
+                    Text(
+                      format.format(item.count),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: item.count > 0 ? Colors.red.shade700 : Colors.green.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
+
+class _CertificateItem {
+  final String label;
+  final int count;
+  final IconData icon;
+  final Color color;
+
+  const _CertificateItem(this.label, this.count, this.icon, this.color);
+}
+
 
 class _SummaryMetric {
   const _SummaryMetric(

@@ -24,6 +24,7 @@ class DashboardState {
     this.cameras = const ['Select All Camera'],
     this.cameraLocationToId = const {},
     this.offenceData,
+    this.offenceTypes = const [],
     this.isLoading = false,
     this.error,
   });
@@ -35,6 +36,7 @@ class DashboardState {
   final List<String> cameras;
   final Map<String, String> cameraLocationToId;
   final Map<String, dynamic>? offenceData;
+  final List<String> offenceTypes;
   final bool isLoading;
   final String? error;
 }
@@ -54,12 +56,14 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       cameras: state.cameras,
       cameraLocationToId: state.cameraLocationToId,
       offenceData: state.offenceData,
+      offenceTypes: state.offenceTypes,
       kpis: state.kpis,
       analyticsSeries: state.analyticsSeries,
     );
     KpiSummary? kpis;
     List<AnalyticsSeries> analytics = [];
     List<String> districts = state.districts;
+    List<String> offenceTypes = state.offenceTypes;
     Map<String, dynamic>? offenceData;
     String? errorMsg;
 
@@ -92,6 +96,12 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       errorMsg ??= e.toString();
     }
 
+    try {
+      offenceTypes = await repository.fetchOffenceTypes();
+    } catch (e) {
+      errorMsg ??= e.toString();
+    }
+
     state = DashboardState(
       kpis: kpis ?? state.kpis,
       analyticsSeries: analytics.isNotEmpty ? analytics : state.analyticsSeries,
@@ -100,6 +110,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       cameras: state.cameras,
       cameraLocationToId: state.cameraLocationToId,
       offenceData: offenceData ?? state.offenceData,
+      offenceTypes: offenceTypes,
       isLoading: false,
       error: errorMsg,
     );
@@ -128,6 +139,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         cameras: state.cameras,
         cameraLocationToId: state.cameraLocationToId,
         offenceData: state.offenceData,
+        offenceTypes: state.offenceTypes,
         isLoading: false,
       );
     } catch (e, stack) {
@@ -141,6 +153,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         cameras: state.cameras,
         cameraLocationToId: state.cameraLocationToId,
         offenceData: state.offenceData,
+        offenceTypes: state.offenceTypes,
         isLoading: false,
         error: e.toString(),
       );
@@ -156,6 +169,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       cameras: state.cameras,
       cameraLocationToId: state.cameraLocationToId,
       offenceData: state.offenceData,
+      offenceTypes: state.offenceTypes,
       isLoading: false,
     );
   }
@@ -195,6 +209,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         cameras: camerasList,
         cameraLocationToId: lookup,
         offenceData: state.offenceData,
+        offenceTypes: state.offenceTypes,
         isLoading: false,
       );
     } catch (e, stack) {
@@ -208,6 +223,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         cameras: const ['Select All Camera'],
         cameraLocationToId: const {},
         offenceData: state.offenceData,
+        offenceTypes: state.offenceTypes,
         isLoading: false,
         error: e.toString(),
       );
@@ -223,6 +239,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       cameras: const ['Select All Camera'],
       cameraLocationToId: const {},
       offenceData: state.offenceData,
+      offenceTypes: state.offenceTypes,
       isLoading: false,
     );
   }

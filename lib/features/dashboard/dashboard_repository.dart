@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../core/network/api_client.dart';
 import 'dashboard_models.dart';
+import 'models/missing_certificate_model.dart';
 
 class DashboardRepository {
   DashboardRepository({required ApiClient apiClient}) : _apiClient = apiClient;
@@ -48,6 +49,18 @@ class DashboardRepository {
     return ['Select All District', ...names];
   }
 
+  Future<List<String>> fetchOffenceTypes() async {
+    final response = await _apiClient.get<Map<String, dynamic>>(
+      '/rta/getOffencesList',
+    );
+
+    final data = response.data?['data'];
+    if (data is List) {
+      return data.whereType<String>().toList();
+    }
+    return [];
+  }
+
   Future<Map<String, dynamic>> fetchOffenceCountData({
     String? district,
     String? zone,
@@ -77,7 +90,9 @@ class DashboardRepository {
     try {
       final encodedDistrict = Uri.encodeComponent(district);
       debugPrint('Repository fetchZones calling: /rtaOffices/$encodedDistrict');
-      final response = await _apiClient.get<List<dynamic>>('/rtaOffices/$encodedDistrict');
+      final response = await _apiClient.get<List<dynamic>>(
+        '/rtaOffices/$encodedDistrict',
+      );
       debugPrint('Repository fetchZones response data: ${response.data}');
       final offices = response.data ?? [];
       final names = offices
@@ -102,12 +117,62 @@ class DashboardRepository {
     try {
       final encodedZone = Uri.encodeComponent(zone);
       debugPrint('Repository fetchCameras calling: /camera/$encodedZone');
-      final response = await _apiClient.get<List<dynamic>>('/camera/$encodedZone');
+      final response = await _apiClient.get<List<dynamic>>(
+        '/camera/$encodedZone',
+      );
       debugPrint('Repository fetchCameras response data: ${response.data}');
       return response.data ?? [];
     } catch (e) {
       debugPrint('Repository fetchCameras error: $e');
       rethrow;
     }
+  }
+
+  Future<MissingCertificateModel> fetchMissingCertificates({
+    String? district,
+    String? zone,
+    String? camera,
+  }) async {
+    // Use GET endpoint with date range to fetch live data. Default to
+    // start of today -> now if no explicit dates are provided by caller.
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final queryParameters = <String, dynamic>{
+      'startDate': startOfDay.toIso8601String(),
+      'endDate': now.toIso8601String(),
+    };
+
+    if (district != null && district != 'Select All District') {
+      queryParameters['districtName'] = district;
+    }
+    if (zone != null && zone != 'Select All Zone') {
+      queryParameters['officeName'] = zone;
+      queryParameters['zone'] = zone;
+    }
+    if (camera != null && camera != 'Select All Camera') {
+      queryParameters['cameraId'] = camera;
+    }
+
+    final response = await _apiClient.get<Map<String, dynamic>>(
+      '/missing-certificates',
+      queryParameters: queryParameters,
+    );
+
+    final respMap = response.data ?? {};
+    return MissingCertificateModel.fromApiResponse(
+      Map<String, dynamic>.from(respMap),
+    );
+  }
+
+  Future<Map<String, dynamic>> getMissingCertificates({
+    required String startDate,
+    required String endDate,
+  }) async {
+    final response = await _apiClient.get<Map<String, dynamic>>(
+      '/missing-certificates',
+      queryParameters: {'startDate': startDate, 'endDate': endDate},
+    );
+
+    return response.data ?? {};
   }
 }
